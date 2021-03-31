@@ -47,17 +47,17 @@ var DefaultPackage = "camel-k"
 var DefaultChannel = "stable"
 
 // DefaultSource is the name of the operator source where the operator is published
-var DefaultSource = "community-operators"
+var DefaultSource = "operatorhubio-catalog"
 
 // DefaultSourceNamespace is the namespace of the operator source
-var DefaultSourceNamespace = "openshift-marketplace"
+var DefaultSourceNamespace = "olm"
 
 // DefaultStartingCSV contains the specific version to install
 var DefaultStartingCSV = ""
 
 // DefaultGlobalNamespace indicates a namespace containing an OperatorGroup that enables the operator to watch all namespaces.
 // It will be used in global installation mode.
-var DefaultGlobalNamespace = "openshift-operators"
+var DefaultGlobalNamespace = "operators"
 
 // Options contains information about an operator in OLM
 type Options struct {
