@@ -1,5 +1,5 @@
 # Go vendor
-/vendor
+#/vendor
 
 # Binary files
 /kamel
