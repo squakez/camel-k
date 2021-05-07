@@ -160,21 +160,7 @@
                                 </goals>
                                 <configuration>
                                     <executable>make</executable>
-                                    <commandlineArgs>codegen set-version VERSION=${version.camel-k.release} RUNTIME_VERSION=${camel-k-runtime.version} BASE_IMAGE=${base.image} IMAGE_NAME=${image.name}</commandlineArgs>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>embed-resources</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>${basedir}/script/embed_resources.sh</executable>
-                                    <commandlineArgs>deploy</commandlineArgs>
-                                    <environmentVariables>
-                                        <GOFLAGS>-mod=vendor</GOFLAGS>
-                                    </environmentVariables>
+                                    <commandlineArgs>codegen set-version VERSION=${version.camel-k.release} RUNTIME_VERSION=${camel-k-runtime.version} BASE_IMAGE=${base.image} IMAGE_NAME=${image.name} build-resources</commandlineArgs>
                                 </configuration>
                             </execution>
                             <execution>
