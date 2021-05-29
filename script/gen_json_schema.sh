@@ -26,7 +26,7 @@ repo=$2
 [ -d "./tmpschema" ] && rm -r ./tmpschema
 mkdir  tmpschema
 
-./mvnw dependency:copy \
+mvn dependency:copy \
   -f build/maven/pom-catalog.xml \
   -Dartifact=org.apache.camel.k:camel-k-loader-yaml-impl:$version:json:json-schema \
   -DoutputDirectory=../../tmpschema \

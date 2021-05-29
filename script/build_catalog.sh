@@ -21,7 +21,7 @@ rootdir=$location/../
 if [ "$#" -ge 1 ]; then
   runtimeVersion="$1"
   shift 1
-  $rootdir/mvnw -q \
+  mvn -q \
     -f ${rootdir}/build/maven/pom-catalog.xml \
     -Denforcer.skip=true \
     -Dcatalog.path=${rootdir}/deploy \
