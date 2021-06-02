@@ -94,8 +94,8 @@ func (t *kameletsTrait) Configure(e *Environment) (bool, error) {
 	}
 
 	if t.Auto == nil || *t.Auto {
+		var kamelets []string
 		if t.List == "" {
-			var kamelets []string
 			sources, err := kubernetes.ResolveIntegrationSources(e.C, e.Client, e.Integration, e.Resources)
 			if err != nil {
 				return false, err
@@ -105,17 +105,25 @@ func (t *kameletsTrait) Configure(e *Environment) (bool, error) {
 				util.StringSliceUniqueConcat(&kamelets, extractKamelets(meta.ToURIs))
 				return true
 			})
+		}
+		// Check if a Kamelet is configured as default error handler URI
+		defaultErrorHandlerURI := e.Integration.Spec.GetConfigurationProperty(v1alpha1.ErrorHandlerAppPropertiesPrefix + ".deadLetterUri")
+		if defaultErrorHandlerURI != "" {
+			if strings.HasPrefix(defaultErrorHandlerURI, "kamelet:") {
+				kamelets = append(kamelets, extractKamelet(defaultErrorHandlerURI))
+			}
+		}
+
+		if len(kamelets) > 0 {
 			sort.Strings(kamelets)
 			t.List = strings.Join(kamelets, ",")
 		}
-
 	}
 
 	return len(t.getKameletKeys()) > 0, nil
 }
 
 func (t *kameletsTrait) Apply(e *Environment) error {
-
 	if e.IntegrationInPhase(v1.IntegrationPhaseInitialization, v1.IntegrationPhaseRunning) {
 		if err := t.addKamelets(e); err != nil {
 			return err
@@ -404,10 +412,18 @@ func integrationSourceFromKameletSource(e *Environment, kamelet *v1alpha1.Kamele
 
 func extractKamelets(uris []string) (kamelets []string) {
 	for _, uri := range uris {
-		matches := kameletNameRegexp.FindStringSubmatch(uri)
-		if len(matches) > 1 {
-			kamelets = append(kamelets, matches[1])
+		kamelet := extractKamelet(uri)
+		if kamelet != "" {
+			kamelets = append(kamelets, kamelet)
 		}
 	}
 	return
+}
+
+func extractKamelet(uri string) (kamelet string) {
+	matches := kameletNameRegexp.FindStringSubmatch(uri)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
 }

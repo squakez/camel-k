@@ -63,6 +63,11 @@ spec:
           spec:
             description: KameletBindingSpec --
             properties:
+              errorHandler:
+                description: ErrorHandler is an optional handler called upon an error
+                  occuring in the integration
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               integration:
                 description: Integration is an optional integration used to specify
                   custom parameters
@@ -84,6 +89,21 @@ spec:
                     items:
                       type: string
                     type: array
+                  errorHandler:
+                    description: ErrorHandlerSpec respresents an integration error
+                      handler to be used as default at runtime
+                    properties:
+                      parameters:
+                        description: ErrorHandlerParameters is an unstructured object
+                          representing the configuration parameters available for
+                          an error handler
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      type:
+                        type: string
+                      uri:
+                        type: string
+                    type: object
                   flows:
                     items:
                       description: Flow is an unstructured object representing a Camel

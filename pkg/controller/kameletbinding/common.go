@@ -53,6 +53,7 @@ func createIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 			},
 		},
 	}
+
 	// start from the integration spec defined in the binding
 	if kameletbinding.Spec.Integration != nil {
 		it.Spec = *kameletbinding.Spec.Integration.DeepCopy()
@@ -79,6 +80,11 @@ func createIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 	if err != nil {
 		return nil, errors.Wrap(err, "could not determine sink URI")
 	}
+	// error handler is optional
+	errorHandler, err := maybeErrorHandler(kameletbinding.Spec.ErrorHandler, bindingContext)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not determine error handler")
+	}
 
 	steps := make([]*bindings.Binding, 0, len(kameletbinding.Spec.Steps))
 	for idx, step := range kameletbinding.Spec.Steps {
@@ -93,10 +99,13 @@ func createIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 		steps = append(steps, stepBinding)
 	}
 
-	allBindings := make([]*bindings.Binding, 0, len(steps)+2)
+	allBindings := make([]*bindings.Binding, 0, len(steps)+3)
 	allBindings = append(allBindings, from)
 	allBindings = append(allBindings, steps...)
 	allBindings = append(allBindings, to)
+	if errorHandler != nil {
+		allBindings = append(allBindings, errorHandler)
+	}
 
 	propList := make([]string, 0)
 	for _, b := range allBindings {
@@ -129,17 +138,17 @@ func createIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 		"to": to.URI,
 	})
 
-	flow := map[string]interface{}{
+	flowFrom := map[string]interface{}{
 		"from": map[string]interface{}{
 			"uri":   from.URI,
 			"steps": dslSteps,
 		},
 	}
-	encodedFlow, err := json.Marshal(flow)
+	encodedFrom, err := json.Marshal(flowFrom)
 	if err != nil {
 		return nil, err
 	}
-	it.Spec.Flows = append(it.Spec.Flows, v1.Flow{RawMessage: encodedFlow})
+	it.Spec.Flows = append(it.Spec.Flows, v1.Flow{RawMessage: encodedFrom})
 
 	return &it, nil
 }
