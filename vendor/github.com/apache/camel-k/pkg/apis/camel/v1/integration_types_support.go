@@ -131,6 +131,19 @@ func (in *IntegrationSpec) AddDependency(dependency string) {
 	in.Dependencies = append(in.Dependencies, newDep)
 }
 
+// GetConfigurationProperty returns a configuration property
+func (in *IntegrationSpec) GetConfigurationProperty(property string) string {
+	for _, confSpec := range in.Configuration {
+		if confSpec.Type == "property" && strings.HasPrefix(confSpec.Value, property) {
+			splitConf := strings.Split(confSpec.Value, "=")
+			if len(splitConf) > 1 {
+				return splitConf[1]
+			}
+		}
+	}
+	return ""
+}
+
 // AddOrReplaceGeneratedResources --
 func (in *IntegrationStatus) AddOrReplaceGeneratedResources(resources ...ResourceSpec) {
 	newResources := make([]ResourceSpec, 0)
