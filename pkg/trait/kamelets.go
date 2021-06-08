@@ -19,6 +19,7 @@ package trait
 
 import (
 	"fmt"
+	"github.com/apache/camel-k/pkg/util/source"
 	"regexp"
 	"sort"
 	"strconv"
@@ -101,8 +102,7 @@ func (t *kameletsTrait) Configure(e *Environment) (bool, error) {
 				return false, err
 			}
 			metadata.Each(e.CamelCatalog, sources, func(_ int, meta metadata.IntegrationMetadata) bool {
-				util.StringSliceUniqueConcat(&kamelets, extractKamelets(meta.FromURIs))
-				util.StringSliceUniqueConcat(&kamelets, extractKamelets(meta.ToURIs))
+				util.StringSliceUniqueConcat(&kamelets, meta.Kamelets)
 				return true
 			})
 		}
@@ -110,7 +110,7 @@ func (t *kameletsTrait) Configure(e *Environment) (bool, error) {
 		defaultErrorHandlerURI := e.Integration.Spec.GetConfigurationProperty(v1alpha1.ErrorHandlerAppPropertiesPrefix + ".deadLetterUri")
 		if defaultErrorHandlerURI != "" {
 			if strings.HasPrefix(defaultErrorHandlerURI, "kamelet:") {
-				kamelets = append(kamelets, extractKamelet(defaultErrorHandlerURI))
+				kamelets = append(kamelets, source.ExtractKamelet(defaultErrorHandlerURI))
 			}
 		}
 
@@ -408,22 +408,4 @@ func integrationSourceFromKameletSource(e *Environment, kamelet *v1alpha1.Kamele
 	target.ContentRef = name
 	target.ContentKey = contentKey
 	return *target, nil
-}
-
-func extractKamelets(uris []string) (kamelets []string) {
-	for _, uri := range uris {
-		kamelet := extractKamelet(uri)
-		if kamelet != "" {
-			kamelets = append(kamelets, kamelet)
-		}
-	}
-	return
-}
-
-func extractKamelet(uri string) (kamelet string) {
-	matches := kameletNameRegexp.FindStringSubmatch(uri)
-	if len(matches) > 1 {
-		return matches[1]
-	}
-	return ""
 }
