@@ -261,7 +261,9 @@ func TestAddPropertyFile(t *testing.T) {
 	assert.Nil(t, ioutil.WriteFile(tmpFile.Name(), []byte(TestPropertyFileContent), 0644))
 
 	spec := v1.IntegrationSpec{}
-	assert.Nil(t, addPropertyFile(tmpFile.Name(), &spec))
+	properties, err := extractProperties("file:" + tmpFile.Name())
+	assert.Nil(t, err)
+	assert.Nil(t, addIntegrationProperties(properties, &spec))
 	assert.Equal(t, 4, len(spec.Configuration))
 	assert.Equal(t, `a=b`, spec.Configuration[0].Value)
 	assert.Equal(t, `c\=d=e`, spec.Configuration[1].Value)
@@ -406,6 +408,18 @@ func TestRunVolumeFlagWrongPVCFormat(t *testing.T) {
 		"-v", "pvcname/container2/path",
 		integrationSource)
 	assert.NotNil(t, err)
+}
+
+func TestRunBuildPropertyFlag(t *testing.T) {
+	runCmdOptions, rootCmd, _ := initializeRunCmdOptions(t)
+	_, err := test.ExecuteCommand(rootCmd, cmdRun,
+		"--build-property", "build-prop1=val1",
+		"--build-property", "build-prop2=val2",
+		integrationSource)
+	assert.Nil(t, err)
+	assert.Len(t, runCmdOptions.BuildProperties, 2)
+	assert.Equal(t, "build-prop1=val1", runCmdOptions.BuildProperties[0])
+	assert.Equal(t, "build-prop2=val2", runCmdOptions.BuildProperties[1])
 }
 
 func TestRunValidateArgs(t *testing.T) {
