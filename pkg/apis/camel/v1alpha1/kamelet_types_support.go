@@ -150,3 +150,13 @@ func ValidKameletProperties(kamelet *Kamelet) bool {
 	}
 	return true
 }
+
+func ValidKameletTemplate(kamelet *Kamelet) bool {
+	if kamelet == nil {
+		return true
+	}
+	if kamelet.Spec.Template != nil && kamelet.Spec.Flow != nil {
+		return false
+	}
+	return true
+}

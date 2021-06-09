@@ -15,39 +15,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package flow
+package source
 
 import (
-	"bytes"
-	"encoding/json"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"regexp"
 )
 
-func TestReadWriteYaml(t *testing.T) {
-	// yaml in conventional form as marshalled by the go runtime
-	yaml := `- from:
-    steps:
-    - to: log:info
-    uri: timer:tick
-`
+var (
+	kameletNameRegexp = regexp.MustCompile("kamelet:(?://)?([a-z0-9-.]+(/[a-z0-9-.]+)?)(?:$|[^a-z0-9-.].*)")
+)
 
-	yamlReader := bytes.NewReader([]byte(yaml))
-	flows, err := FromYamlDSL(yamlReader)
-	assert.NoError(t, err)
-	assert.NotNil(t, flows)
-	assert.Len(t, flows, 1)
+func ExtractKamelets(uris []string) (kamelets []string) {
+	for _, uri := range uris {
+		kamelet := ExtractKamelet(uri)
+		if kamelet != "" {
+			kamelets = append(kamelets, kamelet)
+		}
+	}
+	return
+}
 
-	flow := map[string]interface{}{}
-	err = json.Unmarshal(flows[0].RawMessage, &flow)
-	assert.NoError(t, err)
+func ExtractKamelet(uri string) (kamelet string) {
+	matches := kameletNameRegexp.FindStringSubmatch(uri)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
+}
 
-	assert.NotNil(t, flow["from"])
-	assert.Nil(t, flow["xx"])
-
-	data, err := ToYamlDSL(flows)
-	assert.NoError(t, err)
-	assert.NotNil(t, data)
-	assert.Equal(t, yaml, string(data))
+func AddKamelet(meta *Metadata, content string) {
+	if maybeKamelet := ExtractKamelet(content); maybeKamelet != "" {
+		meta.Kamelets = append(meta.Kamelets, maybeKamelet)
+	}
 }
