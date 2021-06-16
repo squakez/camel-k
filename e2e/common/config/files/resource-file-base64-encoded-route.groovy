@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
+from('timer:resources-bas64')
+    .routeId('resources-base64')
     .setBody()
         .simple("resource:classpath:resources-data.txt")
-    .log('resource file content is: ${body}')
+    .log('resource file base64 content is: ${body}')

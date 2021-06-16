@@ -253,12 +253,14 @@ func TestConfigureVolumesAndMountsTextResourcesAndProperties(t *testing.T) {
 						Value: "a=b",
 					},
 					{
-						Type:  "configmap",
-						Value: "test-configmap",
+						Type:         "configmap",
+						Value:        "test-configmap",
+						ResourceType: "config",
 					},
 					{
-						Type:  "secret",
-						Value: "test-secret",
+						Type:         "secret",
+						Value:        "test-secret",
+						ResourceType: "config",
 					},
 					{
 						Type:  "volume",
@@ -345,7 +347,7 @@ func TestConfigureVolumesAndMountsTextResourcesAndProperties(t *testing.T) {
 
 	m = findVVolumeMount(mnts, func(m corev1.VolumeMount) bool { return m.Name == "test-configmap" })
 	assert.NotNil(t, m)
-	assert.Equal(t, path.Join(configMapsMountPath, "test-configmap"), m.MountPath)
+	assert.Equal(t, path.Join(configConfigmapsMountPath, "test-configmap"), m.MountPath)
 
 	v = findVolume(vols, func(v corev1.Volume) bool { return v.Name == "test-secret" })
 	assert.NotNil(t, v)
@@ -354,7 +356,7 @@ func TestConfigureVolumesAndMountsTextResourcesAndProperties(t *testing.T) {
 
 	m = findVVolumeMount(mnts, func(m corev1.VolumeMount) bool { return m.Name == "test-secret" })
 	assert.NotNil(t, m)
-	assert.Equal(t, path.Join(secretsMountPath, "test-secret"), m.MountPath)
+	assert.Equal(t, path.Join(configSecretsMountPath, "test-secret"), m.MountPath)
 
 	v = findVolume(vols, func(v corev1.Volume) bool { return v.Name == "testvolume-data" })
 	assert.NotNil(t, v)

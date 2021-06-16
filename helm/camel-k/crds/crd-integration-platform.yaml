@@ -191,6 +191,12 @@ spec:
                 items:
                   description: ConfigurationSpec --
                   properties:
+                    resourceKey:
+                      type: string
+                    resourceMountPoint:
+                      type: string
+                    resourceType:
+                      type: string
                     type:
                       type: string
                     value:
@@ -395,6 +401,12 @@ spec:
                 items:
                   description: ConfigurationSpec --
                   properties:
+                    resourceKey:
+                      type: string
+                    resourceMountPoint:
+                      type: string
+                    resourceType:
+                      type: string
                     type:
                       type: string
                     value:

@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
+from('timer:configmap')
+    .routeId('configmap')
     .setBody()
-        .simple("resource:classpath:resources-data.txt")
-    .log('resource file content is: ${body}')
+        .simple("resource:classpath:my-configmap-key")
+    .log('configmap content is: ${body}')

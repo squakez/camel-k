@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
+from('timer:secret')
+    .routeId('secret')
     .setBody()
-        .simple("resource:classpath:resources-data.txt")
-    .log('resource file content is: ${body}')
+        .simple("resource:classpath:my-secret-key")
+    .log('secret content is: ${body}')

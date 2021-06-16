@@ -18,13 +18,8 @@
 
 //
 // To run this integrations use:
-//
-// kubectl create secret generic my-sec --from-literal=my-secret-key="very top secret"
-// kamel run --config secret:my-sec secret-route.groovy --dev
+// kamel run --resource file:resources-data.txt resource-file-route.groovy --dev
 //
 
-from('timer:secret')
-    .routeId('secret')
-    .setBody()
-        .simple("resource:classpath:my-secret-key")
-    .log('secret content is: ${body}')
+from('file:/etc/camel/resources/?fileName=resources-data.txt&noop=true&idempotent=false')
+    .log('resource file content is: ${body}')

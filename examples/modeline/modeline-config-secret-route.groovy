@@ -16,8 +16,17 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
+//
+// To run this integrations use:
+//
+// kubectl create secret generic my-sec --from-literal=my-secret-key="very top secret"
+// kamel run modeline-config-secret-route.groovy --dev
+//
+
+// camel-k: config=secret:my-sec
+
+from('timer:secret')
+    .routeId('secret')
     .setBody()
-        .simple("resource:classpath:resources-data.txt")
-    .log('resource file content is: ${body}')
+        .simple("resource:classpath:my-secret-key")
+    .log('secret content is: ${body}')

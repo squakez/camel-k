@@ -16,8 +16,10 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
-    .setBody()
-        .simple("resource:classpath:resources-data.txt")
+//
+// To run this integrations use:
+// kamel run --resource file:resources-data.txt@/tmp/input.txt resource-file-location-route.groovy --dev
+//
+
+from('file:/tmp/?fileName=input.txt&noop=true&idempotent=false')
     .log('resource file content is: ${body}')

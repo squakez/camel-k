@@ -18,13 +18,10 @@
 
 //
 // To run this integrations use:
-//
-// kubectl create configmap my-cm --from-literal=my-configmap-key="configmap content"
-// kamel run --config configmap:my-cm configmap-route.groovy --dev
+// 
+// kubectl create configmap my-cm-multi --from-literal=my-configmap-key="configmap content" --from-literal=my-configmap-key-2="another content"
+// kamel run --resource configmap:my-cm-multi/my-configmap-key-2@/tmp/app/data resource-configmap-key-location-route.groovy --dev
 //
 
-from('timer:configmap')
-    .routeId('configmap')
-    .setBody()
-        .simple("resource:classpath:my-configmap-key")
-    .log('configmap content is: ${body}')
+from('file:/tmp/app/data/?fileName=my-configmap-key-2&noop=true&idempotent=false')
+    .log('resource file content is: ${body} consumed from ${header.CamelFileName}')

@@ -16,8 +16,12 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
-    .setBody()
-        .simple("resource:classpath:resources-data.txt")
+//
+// To run this integrations use:
+// kamel run modeline-resource-file-route.groovy --dev
+//
+
+// camel-k: resource=file:resources-data.txt
+
+from('file:/etc/camel/data/resources/?fileName=resources-data.txt&noop=true&idempotent=false')
     .log('resource file content is: ${body}')

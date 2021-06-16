@@ -18,11 +18,11 @@
 
 //
 // To run this integrations use:
-// kamel run --config file:resources-data.txt resources-route.groovy --dev
+// kamel run --config file:resources-data.txt config-file-route.groovy --dev
 //
 
-from('timer:resources')
-    .routeId('resources')
+from('timer:config-file')
+    .routeId('config-file')
     .setBody()
         .simple("resource:classpath:resources-data.txt")
     .log('resource file content is: ${body}')

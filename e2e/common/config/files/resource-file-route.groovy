@@ -16,8 +16,5 @@
  * limitations under the License.
  */
 
-from('timer:resources')
-    .routeId('resources')
-    .setBody()
-        .simple("resource:classpath:resources-data.txt")
+from('file:/etc/camel/resources/?fileName=resources-data.txt&noop=true&idempotent=false')
     .log('resource file content is: ${body}')

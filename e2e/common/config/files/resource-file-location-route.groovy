@@ -16,17 +16,5 @@
  * limitations under the License.
  */
 
-//
-// To run this integrations use:
-//
-// kubectl create secret generic my-sec --from-literal=my-secret-key="very top secret"
-// kamel run secret-route.groovy --dev
-//
-
-// camel-k: config=secret:my-sec
-
-from('timer:secret')
-    .routeId('secret')
-    .setBody()
-        .simple("resource:classpath:my-secret-key")
-    .log('secret content is: ${body}')
+from('file:/tmp/?fileName=file.txt&noop=true&idempotent=false')
+    .log('resource file content is: ${body}')

@@ -19,12 +19,12 @@
 //
 // To run this integrations use:
 //
-// kubectl create configmap my-cm --from-literal=my-configmap-key="configmap content"
-// kamel run --config configmap:my-cm configmap-route.groovy --dev
+// kubectl create secret generic my-sec-multi --from-literal=my-secret-key="very top secret" --from-literal=my-secret-key-2="even more secret"
+// kamel run --config secret:my-sec-multi/my-secret-key-2 config-secret-key-route.groovy --dev
 //
 
-from('timer:configmap')
-    .routeId('configmap')
+from('timer:secret')
+    .routeId('secret')
     .setBody()
-        .simple("resource:classpath:my-configmap-key")
-    .log('configmap content is: ${body}')
+        .simple("resource:classpath:my-secret-key-2")
+    .log('secret content is: ${body}')

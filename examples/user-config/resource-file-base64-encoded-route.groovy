@@ -18,8 +18,11 @@
 
 //
 // To run this integrations use:
-// kamel run --resource resources-data.txt resources-route.groovy --dev
+// kamel run --resource resources-data.txt --compression=true resource-file-base64-encoded-route.groovy --dev
 //
 
-from('file:/etc/camel/resources/?fileName=resources-data.txt&noop=true&idempotent=false')
-    .log('resource file content is: ${body}')
+from('timer:resources-bas64')
+    .routeId('resources-base64')
+    .setBody()
+        .simple("resource:classpath:resources-data.txt")
+    .log('resource file base64 content is: ${body}')
