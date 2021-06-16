@@ -1,4 +1,3 @@
-// camel-k: language=groovy
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,12 +15,18 @@
  * limitations under the License.
  */
 
-//
-// To run this integrations use:
-// kamel run modeline-resource-file-route.groovy --dev
+// kamel run NettyServer.java --dev
+// 
+// recover the service location. If you're running on minikube, minikube service netty-server --url=true
+// curl http://<service-location>/hello
 //
 
-// camel-k: resource=file:resources-data.txt
+import org.apache.camel.builder.RouteBuilder;
 
-from('file:/etc/camel/resources/?fileName=resources-data.txt&noop=true&idempotent=false')
-    .log('resource file content is: ${body}')
+public class NettyServer extends RouteBuilder {
+  @Override
+  public void configure() throws Exception {
+    from("netty-http:http://0.0.0.0:8080/hello")
+      .transform().constant("Hello World");
+  }
+}

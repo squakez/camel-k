@@ -1,4 +1,3 @@
-// camel-k: language=groovy
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -16,12 +15,17 @@
  * limitations under the License.
  */
 
-//
-// To run this integrations use:
-// kamel run modeline-resource-file-route.groovy --dev
+// kamel run PlatformHttpServer.java --dev -t service.enabled=true
+// 
+// recover the service location. If you're running on minikube, minikube service platform-http-server --url=true
+// curl -H "name:World" http://<service-location>/hello
 //
 
-// camel-k: resource=file:resources-data.txt
+import org.apache.camel.builder.RouteBuilder;
 
-from('file:/etc/camel/resources/?fileName=resources-data.txt&noop=true&idempotent=false')
-    .log('resource file content is: ${body}')
+public class PlatformHttpServer extends RouteBuilder {
+  @Override
+  public void configure() throws Exception {
+    from("platform-http:/hello?httpMethodRestrict=GET").setBody(simple("Hello ${header.name}"));
+  }
+}
