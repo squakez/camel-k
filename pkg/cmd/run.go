@@ -285,7 +285,7 @@ func (o *runCmdOptions) run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	integration, err := o.createIntegration(c, args, catalog)
+	integration, err := o.createIntegration(cmd, c, args, catalog)
 	if err != nil {
 		return err
 	}
@@ -439,7 +439,7 @@ func (o *runCmdOptions) syncIntegration(cmd *cobra.Command, c client.Client, sou
 						newCmd.Args = o.validateArgs
 						newCmd.PreRunE = o.decode
 						newCmd.RunE = func(cmd *cobra.Command, args []string) error {
-							_, err := o.updateIntegrationCode(c, sources, catalog)
+							_, err := o.updateIntegrationCode(cmd, c, sources, catalog)
 							return err
 						}
 						newCmd.PostRunE = nil
@@ -462,12 +462,12 @@ func (o *runCmdOptions) syncIntegration(cmd *cobra.Command, c client.Client, sou
 	return nil
 }
 
-func (o *runCmdOptions) createIntegration(c client.Client, sources []string, catalog *trait.Catalog) (*v1.Integration, error) {
-	return o.updateIntegrationCode(c, sources, catalog)
+func (o *runCmdOptions) createIntegration(cmd *cobra.Command, c client.Client, sources []string, catalog *trait.Catalog) (*v1.Integration, error) {
+	return o.updateIntegrationCode(cmd, c, sources, catalog)
 }
 
 // nolint: gocyclo
-func (o *runCmdOptions) updateIntegrationCode(c client.Client, sources []string, catalog *trait.Catalog) (*v1.Integration, error) {
+func (o *runCmdOptions) updateIntegrationCode(cmd *cobra.Command, c client.Client, sources []string, catalog *trait.Catalog) (*v1.Integration, error) {
 	namespace := o.Namespace
 
 	name := o.GetIntegrationName(sources)
@@ -621,7 +621,7 @@ func (o *runCmdOptions) updateIntegrationCode(c client.Client, sources []string,
 		if err != nil {
 			return nil, err
 		}
-		fmt.Print(string(data))
+		fmt.Fprint(cmd.OutOrStdout(), string(data))
 		return nil, nil
 
 	case "json":
@@ -629,7 +629,7 @@ func (o *runCmdOptions) updateIntegrationCode(c client.Client, sources []string,
 		if err != nil {
 			return nil, err
 		}
-		fmt.Print(string(data))
+		fmt.Fprint(cmd.OutOrStdout(), string(data))
 		return nil, nil
 
 	default:
