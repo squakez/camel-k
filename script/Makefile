@@ -195,7 +195,7 @@ endif
 
 build-resources:
 	./script/build_catalog.sh $(RUNTIME_VERSION) -Dcatalog.file=camel-catalog-$(RUNTIME_VERSION).yaml -Dcatalog.runtime=quarkus -Dstaging.repo="$(STAGING_RUNTIME_REPO)"
-	go generate ./pkg/...
+	go generate -mod=vendor ./pkg/...
 
 bundle-kamelets:
 ifneq (,$(findstring release,$(MAKECMDGOALS)))
