@@ -32,6 +32,7 @@ import (
 	"github.com/apache/camel-k/pkg/metadata"
 	"github.com/apache/camel-k/pkg/util"
 	"github.com/apache/camel-k/pkg/util/kubernetes"
+	"github.com/apache/camel-k/pkg/util/label"
 	"github.com/apache/camel-k/pkg/util/uri"
 )
 
@@ -292,7 +293,7 @@ func (t *cronTrait) getCronJobFor(e *Environment) *v1beta1.CronJob {
 				Spec: batchv1.JobSpec{
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
-							Labels:      labels,
+							Labels:      label.AddLabels(e.Integration.Name),
 							Annotations: annotations,
 						},
 						Spec: corev1.PodSpec{
