@@ -213,10 +213,6 @@ spec:
                 items:
                   type: string
                 type: array
-              flow:
-                description: 'Deprecated: use template'
-                type: object
-                x-kubernetes-preserve-unknown-fields: true
               sources:
                 items:
                   description: SourceSpec --
