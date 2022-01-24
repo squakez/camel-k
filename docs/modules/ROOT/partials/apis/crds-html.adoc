@@ -3787,19 +3787,6 @@ Note that the root CA certificates are also imported into the created keystore.<
 </tr>
 <tr>
 <td>
-<code>timeout</code><br/>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta">
-Kubernetes meta/v1.Duration
-</a>
-</em>
-</td>
-<td>
-<p>Deprecated: use IntegrationPlatform.Spec.Build.Timeout instead</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>extension</code><br/>
 <em>
 <a href="#camel.apache.org/v1.MavenArtifact">
@@ -3810,6 +3797,19 @@ Kubernetes meta/v1.Duration
 <td>
 <p>The Maven build extensions.
 See <a href="https://maven.apache.org/guides/mini/guide-using-extensions.html">https://maven.apache.org/guides/mini/guide-using-extensions.html</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cliOptions</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>The CLI options that are appended to the list of arguments for Maven commands,
+e.g., <code>-V,--no-transfer-progress,-Dstyle.color=never</code>.
+See <a href="https://maven.apache.org/ref/3.8.4/maven-embedder/cli.html">https://maven.apache.org/ref/3.8.4/maven-embedder/cli.html</a>.</p>
 </td>
 </tr>
 </tbody>
