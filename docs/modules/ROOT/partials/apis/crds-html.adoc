@@ -357,17 +357,6 @@ Use openapi trait (openapi.configmaps) to manage OpenAPIs specifications</p>
 </tr>
 <tr>
 <td>
-<code>kit</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Deprecated: use the IntegrationKit field</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>integrationKit</code><br/>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#objectreference-v1-core">
@@ -3155,17 +3144,6 @@ int32
 <p>Deprecated:
 Use container trait (container.resources) to manage resources
 Use openapi trait (openapi.configmaps) to manage OpenAPIs specifications</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>kit</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Deprecated: use the IntegrationKit field</p>
 </td>
 </tr>
 <tr>
