@@ -32,7 +32,7 @@ func (in *BeanProperties) DeepCopyInto(out *BeanProperties) {
 	*out = *in
 	if in.RawMessage != nil {
 		in, out := &in.RawMessage, &out.RawMessage
-		*out = make(v1.RawMessage, len(*in))
+		*out = make(RawMessage, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -89,7 +89,7 @@ func (in *EndpointProperties) DeepCopyInto(out *EndpointProperties) {
 	*out = *in
 	if in.RawMessage != nil {
 		in, out := &in.RawMessage, &out.RawMessage
-		*out = make(v1.RawMessage, len(*in))
+		*out = make(RawMessage, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -146,7 +146,7 @@ func (in *ErrorHandlerParameters) DeepCopyInto(out *ErrorHandlerParameters) {
 	*out = *in
 	if in.RawMessage != nil {
 		in, out := &in.RawMessage, &out.RawMessage
-		*out = make(v1.RawMessage, len(*in))
+		*out = make(RawMessage, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -187,7 +187,7 @@ func (in *ErrorHandlerSpec) DeepCopyInto(out *ErrorHandlerSpec) {
 	*out = *in
 	if in.RawMessage != nil {
 		in, out := &in.RawMessage, &out.RawMessage
-		*out = make(v1.RawMessage, len(*in))
+		*out = make(RawMessage, len(*in))
 		copy(*out, *in)
 	}
 }
