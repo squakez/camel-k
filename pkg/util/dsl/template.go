@@ -23,11 +23,11 @@ import (
 
 	yaml2 "gopkg.in/yaml.v2"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
+	v1alpha1 "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 )
 
 // TemplateToYamlDSL converts a kamelet template into its Camel YAML DSL equivalent.
-func TemplateToYamlDSL(template v1.Template, id string) ([]byte, error) {
+func TemplateToYamlDSL(template v1alpha1.Template, id string) ([]byte, error) {
 	data, err := json.Marshal(&template)
 	if err != nil {
 		return nil, err

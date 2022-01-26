@@ -20,12 +20,12 @@ package dsl
 import (
 	"testing"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
+	v1alpha1 "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTemplateReadWrite(t *testing.T) {
-	templateJSON := v1.Template{
+	templateJSON := v1alpha1.Template{
 		RawMessage: []byte(`
 		{
 			"beans": [
