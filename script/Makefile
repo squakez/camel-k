@@ -14,11 +14,10 @@
 # limitations under the License.
 
 VERSIONFILE := pkg/util/defaults/defaults.go
-VERSION ?= 1.6.0
-OPERATOR_VERSION := $(subst -SNAPSHOT,,$(VERSION))
-LAST_RELEASED_VERSION := 1.5.1
+VERSION := 1.6.4
+LAST_RELEASED_VERSION := 1.6.3
 RUNTIME_VERSION := 1.9.0
-LAST_RELEASED_IMAGE_NAME := camel-k-operator
+LAST_RELEASED_IMAGE_NAME := red-hat-camel-k-operator
 BUILDAH_VERSION := 1.14.0
 KANIKO_VERSION := 0.17.1
 INSTALL_DEFAULT_KAMELETS := true
@@ -27,7 +26,7 @@ OPERATOR_SDK_VERSION := v1.14.0
 KUSTOMIZE_VERSION := v4.1.2
 BASE_IMAGE := adoptopenjdk/openjdk11:slim
 LOCAL_REPOSITORY := /tmp/artifacts/m2
-IMAGE_NAME := docker.io/apache/camel-k
+IMAGE_NAME := registry-proxy.engineering.redhat.com/rh-osbs/integration-camel-k-rhel8-operator
 
 #
 # Situations when user wants to override
@@ -37,6 +36,8 @@ IMAGE_NAME := docker.io/apache/camel-k
 #
 CUSTOM_IMAGE ?= $(IMAGE_NAME)
 CUSTOM_VERSION ?= $(VERSION)
+OPERATOR_VERSION := $(subst -SNAPSHOT,,$(CUSTOM_VERSION))
+CUSTOM_TAG ?= $(OPERATOR_VERSION)
 
 METADATA_IMAGE_NAME := $(CUSTOM_IMAGE)-metadata
 BUNDLE_IMAGE_NAME ?= $(CUSTOM_IMAGE)-bundle
@@ -47,15 +48,20 @@ LINT_DEADLINE := 10m
 
 
 # olm bundle vars
-CHANNELS ?= $(OPERATOR_VERSION),candidate,stable,latest
-DEFAULT_CHANNEL ?= $(OPERATOR_VERSION)
-PACKAGE := camel-k
+MANAGER := config/manager
+MANIFESTS := config/manifests
+CHANNELS ?= $(shell v=$(OPERATOR_VERSION) && echo "$${v%\.[0-9]}.x"),candidate,stable,latest
+DEFAULT_CHANNEL ?= $(shell v=$(OPERATOR_VERSION) && echo "$${v%\.[0-9]}.x")
+PACKAGE := red-hat-camel-k
 CSV_VERSION := $(CUSTOM_VERSION:-SNAPSHOT=)
-CSV_DISPLAY_NAME := Camel K Operator
+CSV_NAME := $(PACKAGE).v$(CSV_VERSION)
+CSV_DISPLAY_NAME := Red Hat Integration - Camel K
 CSV_SUPPORT := Camel
 CSV_REPLACES := $(LAST_RELEASED_IMAGE_NAME).v$(LAST_RELEASED_VERSION)
 CSV_FILENAME := $(PACKAGE).clusterserviceversion.yaml
-CSV_PATH := config/manifests/bases/$(CSV_FILENAME)
+CSV_PATH := $(MANIFESTS)/bases/$(CSV_FILENAME)
+DEFAULT_CSV := $(MANIFESTS)/bases/camel-k.clusterserviceversion.yaml
+ADD_REDHAT_LABELS_PATCH := $(MANAGER)/patch-add-redhat-labels.yaml
 
 # Used to push pre-release artifacts
 STAGING_IMAGE_NAME := docker.io/camelk/camel-k
@@ -256,6 +262,11 @@ clean:
 	rm -rf camel-k-client-*.tar.gz
 	rm -rf camel-k-examples-*.tar.gz
 	rm -rf bundle
+ifneq ($(CSV_PATH), $(DEFAULT_CSV))
+ifneq ("$(wildcard $(CSV_PATH))","")
+	mv $(CSV_PATH) $(DEFAULT_CSV)
+endif
+endif
 
 dep:
 	go mod tidy
@@ -317,9 +328,9 @@ git-tag:
 	./script/git_tag.sh $(CUSTOM_VERSION) $(RELEASE_GIT_REMOTE)
 
 cross-compile:
-	# we must wrap the goldflags parameters with quotes as they will need to 
+	# we must wrap the goldflags parameters with quotes as they will need to
 	# be processed as a single argument by the cross compile script
-	./script/cross_compile.sh $(VERSION) $(subst ","\",$(GOFLAGS))
+	./script/cross_compile.sh $(CUSTOM_VERSION) $(subst ","\",$(GOFLAGS))
 
 package-examples:
 	./script/package_examples.sh $(CUSTOM_VERSION)
@@ -450,17 +461,19 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL) $(BUNDLE_PA
 pre-bundle:
 # bundle name must match that which appears in PROJECT file
 	@sed -i 's/projectName: .*/projectName: $(PACKAGE)/' PROJECT
-	@sed -i 's~^    containerImage: .*~    containerImage: $(CUSTOM_IMAGE):$(CUSTOM_VERSION)~' $(CSV_PATH)
-	@sed -i 's/^    support: .*/    support: $(CSV_SUPPORT)/' $(CSV_PATH)
-	@sed -i 's/^  name: .*.\(v.*\)/  name: $(PACKAGE).v$(CSV_VERSION)/' $(CSV_PATH)
+# finds the single CSV file and renames it
+	@find $(MANIFESTS)/bases -type f -name "*.clusterserviceversion.yaml" -execdir mv '{}' $(CSV_FILENAME) ';'
+	@sed -i 's~^    containerImage: .*~    containerImage: $(CUSTOM_IMAGE):$(CUSTOM_TAG)~' $(CSV_PATH)
+	@sed -i 's/^  name: .*.\(v.*\)/  name: $(CSV_NAME)/' $(CSV_PATH)
 	@sed -i 's/^  displayName: .*/  displayName: $(CSV_DISPLAY_NAME)/' $(CSV_PATH)
 	@sed -i 's/^  replaces: .*/  replaces: $(CSV_REPLACES)/' $(CSV_PATH)
 	@sed -i 's/^  version: .*/  version: $(CSV_VERSION)/' $(CSV_PATH)
-	@sed -i '/  version: ${CSV_VERSION}/a \ \ replaces: $(CSV_REPLACES)' $(CSV_PATH)
+# update the patch label file before applying it
+	@sed -i 's/^        rht.comp_ver:.*/        rht.comp_ver: $(CUSTOM_VERSION)/' $(ADD_REDHAT_LABELS_PATCH)
 
-bundle: set-version generate-crd $(BUNDLE_CAMEL_APIS) kustomize operator-sdk pre-bundle
+bundle: set-version generate-crd kustomize operator-sdk pre-bundle $(BUNDLE_CAMEL_APIS)
 	@# Sets the operator image to the preferred image:tag
-	@cd config/manifests && $(KUSTOMIZE) edit set image $(IMAGE_NAME)=$(CUSTOM_IMAGE):$(CUSTOM_VERSION)
+	@cd config/manifests && $(KUSTOMIZE) edit set image $(IMAGE_NAME)=$(CUSTOM_IMAGE):$(CUSTOM_TAG)
 	@# Build kustomize manifests
 	@$(KUSTOMIZE) build config/manifests | \
 		$(OPERATOR_SDK) generate bundle \
@@ -473,8 +486,8 @@ else
 	@mv bundle.Dockerfile bundle/Dockerfile && sed -i 's/bundle\///g' bundle/Dockerfile
 endif
 	@# Adds the licence headers to the csv file
-	./script/add_license.sh bundle/manifests ./script/headers/yaml.txt
-	$(OPERATOR_SDK) bundle validate ./bundle
+	@./script/add_license.sh bundle/manifests ./script/headers/yaml.txt
+	@$(OPERATOR_SDK) bundle validate ./bundle
 
 # Build the bundle image.
 bundle-build: bundle
