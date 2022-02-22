@@ -1,6 +1,6 @@
 domain: apache.org
 layout: go.kubebuilder.io/v2
-projectName: camel-k
+projectName: red-hat-camel-k
 repo: github.com/apache/camel-k
 resources:
 - group: camel
@@ -24,6 +24,6 @@ resources:
 - group: camel
   kind: Kamelet
   version: v1alpha1
-version: 3-alpha
+version: "3"
 plugins:
   go.sdk.operatorframework.io/v2-alpha: {}
