@@ -14,8 +14,8 @@
 # limitations under the License.
 
 VERSIONFILE := pkg/util/defaults/defaults.go
-VERSION := 1.6.4
-LAST_RELEASED_VERSION := 1.6.3
+VERSION := 1.7.0
+LAST_RELEASED_VERSION := 1.6.4
 RUNTIME_VERSION := 1.9.0
 LAST_RELEASED_IMAGE_NAME := red-hat-camel-k-operator
 BUILDAH_VERSION := 1.14.0
@@ -24,7 +24,7 @@ INSTALL_DEFAULT_KAMELETS := true
 CONTROLLER_GEN_VERSION := v0.4.1
 OPERATOR_SDK_VERSION := v1.14.0
 KUSTOMIZE_VERSION := v4.1.2
-BASE_IMAGE := adoptopenjdk/openjdk11:slim
+BASE_IMAGE := registry.access.redhat.com/ubi8/openjdk-11:1.10
 LOCAL_REPOSITORY := /tmp/artifacts/m2
 IMAGE_NAME := registry-proxy.engineering.redhat.com/rh-osbs/integration-camel-k-rhel8-operator
 
@@ -42,7 +42,12 @@ CUSTOM_TAG ?= $(OPERATOR_VERSION)
 METADATA_IMAGE_NAME := $(CUSTOM_IMAGE)-metadata
 BUNDLE_IMAGE_NAME ?= $(CUSTOM_IMAGE)-bundle
 RELEASE_GIT_REMOTE := upstream
-GIT_COMMIT := $(shell git rev-list -1 HEAD)
+ifeq (, $(shell command -v git 2> /dev/null))
+GIT_COMMIT=$(shell git rev-list -1 HEAD)
+else
+GIT_COMMIT=release-$(CUSTOM_VERSION)
+endif
+
 LINT_GOGC := 10
 LINT_DEADLINE := 10m
 
@@ -155,7 +160,7 @@ codegen:
 	@echo "  installDefaultKamelets = $(INSTALL_DEFAULT_KAMELETS)" >> $(VERSIONFILE)
 	@echo ")" >> $(VERSIONFILE)
 	@echo "" >> $(VERSIONFILE)
-	gofmt -w pkg/util/defaults/defaults.go
+	gofmt -w $(VERSIONFILE)
 
 generate: generate-deepcopy generate-crd generate-client generate-doc generate-json-schema generate-strimzi
 
@@ -178,6 +183,7 @@ generate-json-schema:
 generate-strimzi:
 	cd addons/strimzi/duck && $(CONTROLLER_GEN) paths="./..." object
 	./script/gen_client_strimzi.sh
+
 
 build: build-resources build-kamel build-compile-integration-tests build-submodules
 
@@ -248,7 +254,7 @@ build-compile-integration-tests:
 	go test -c -tags="integration" ./e2e/builder
 
 clean:
-	# disable gomodules when executing go clean:
+	# disabling gomodules when executing go clean:
 	#
 	#    https://github.com/golang/go/issues/31002
 	#
