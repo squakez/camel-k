@@ -187,6 +187,8 @@ generate-strimzi:
 
 build: build-resources build-kamel build-compile-integration-tests build-submodules
 
+ci-build: clean codegen set-module-version set-version build-generate check-licenses dir-licenses build-kamel cross-compile
+
 test: build
 	go test ./...
 
@@ -232,9 +234,11 @@ else
 	go build $(GOFLAGS) -o kamel ./cmd/kamel/*.go
 endif
 
-build-resources:
-	./script/build_catalog.sh $(RUNTIME_VERSION) -Dcatalog.file=camel-catalog-$(RUNTIME_VERSION).yaml -Dcatalog.runtime=quarkus -Dstaging.repo="$(STAGING_RUNTIME_REPO)"
+build-generate:
 	go generate -mod=vendor ./pkg/...
+
+build-resources: build-generate
+	./script/build_catalog.sh $(RUNTIME_VERSION) -Dcatalog.file=camel-catalog-$(RUNTIME_VERSION).yaml -Dcatalog.runtime=quarkus -Dstaging.repo="$(STAGING_RUNTIME_REPO)"
 
 bundle-kamelets:
 ifneq (,$(findstring release,$(MAKECMDGOALS)))
@@ -286,6 +290,9 @@ lint-fix:
 
 check-licenses:
 	./script/check_licenses.sh
+
+dir-licenses:
+	./script/vendor-license-directory.sh
 
 maven-overlay:
 	mkdir -p build/_maven_overlay
@@ -361,7 +368,7 @@ install-minikube:
 get-staging-repo:
 	@echo $(or ${STAGING_RUNTIME_REPO},https://repository.apache.org/content/repositories/snapshots@id=apache-snapshots@snapshots)
 
-.PHONY: build build-kamel build-resources dep codegen images images-dev images-push images-push-staging test check test-integration clean release cross-compile package-examples set-version git-tag release-notes check-licenses generate-deepcopy generate-client generate-doc build-resources release-helm release-staging release-nightly get-staging-repo get-version build-submodules set-module-version bundle-kamelets generate-strimzi
+.PHONY: build build-kamel build-resources build-generate dep codegen images images-dev images-push images-push-staging test check test-integration clean release cross-compile package-examples set-version git-tag release-notes check-licenses generate-deepcopy generate-client generate-doc release-helm release-staging release-nightly get-staging-repo get-version build-submodules set-module-version bundle-kamelets generate-strimzi
 .PHONY: controller-gen kubectl kustomize operator-sdk
 
 # find or download controller-gen if necessary

@@ -1,6 +1,7 @@
 # Binary files
 /kamel
 /license-check
+/licenses
 
 # Config files
 /kamel-config.yaml
@@ -8,6 +9,7 @@
 
 # Released Packages
 *.tar.gz
+*.zip
 
 # Release Notes
 /release-notes.md

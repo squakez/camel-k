@@ -15,10 +15,4 @@
 # limitations under the License.
 # ---------------------------------------------------------------------------
 
-apiVersion: scorecard.operatorframework.io/v1alpha3
-kind: Configuration
-metadata:
-  name: config
-stages:
-- parallel: true
-  tests: []
+# This dir and subdirs are not included in VFS
