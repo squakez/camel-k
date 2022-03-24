@@ -15,17 +15,4 @@
 # limitations under the License.
 # ---------------------------------------------------------------------------
 
-# Default values for camel-k.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-nameOverride: ""
-fullnameOverride: ""
-
-operator:
-  image: registry-proxy.engineering.redhat.com/rh-osbs/integration-camel-k-rhel8-operator:1.7.0
-
-platform:
-  build:
-    registry: {}
-  cluster: ""
+# This dir and subdirs are not included in VFS

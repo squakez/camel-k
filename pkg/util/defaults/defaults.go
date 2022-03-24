@@ -23,7 +23,7 @@ package defaults
 
 const (
 	// Version --
-	Version = "1.6.0"
+	Version = "1.7.0"
 
 	// DefaultRuntimeVersion --
 	DefaultRuntimeVersion = "1.9.0"
@@ -35,13 +35,13 @@ const (
 	KanikoVersion = "0.17.1"
 
 	// baseImage --
-	baseImage = "adoptopenjdk/openjdk11:slim"
+	baseImage = "registry.access.redhat.com/ubi8/openjdk-11:1.10"
 
 	// LocalRepository --
 	LocalRepository = "/tmp/artifacts/m2"
 
 	// ImageName --
-	ImageName = "docker.io/apache/camel-k"
+	ImageName = "registry-proxy.engineering.redhat.com/rh-osbs/integration-camel-k-rhel8-operator"
 
 	// installDefaultKamelets --
 	installDefaultKamelets = true
