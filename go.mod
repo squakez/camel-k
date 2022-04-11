@@ -21,15 +21,15 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/onsi/gomega v1.19.0
 	github.com/openshift/api v3.9.1-0.20190927182313-d4a64ec2cbd8+incompatible
-	github.com/operator-framework/api v0.3.8
+	github.com/operator-framework/api v0.14.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.42.1
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.32.1
+	github.com/prometheus/common v0.33.0
 	github.com/radovskyb/watcher v1.0.7
-	github.com/redhat-developer/service-binding-operator v1.0.0
-	github.com/rs/xid v1.3.0
+	github.com/redhat-developer/service-binding-operator v1.0.1
+	github.com/rs/xid v1.4.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
 	github.com/shurcooL/vfsgen v0.0.0-20181202132449-6a9ea43bcacd
@@ -38,19 +38,19 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.10.1
 	github.com/stoewer/go-strcase v1.2.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.21.0
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.22.5
-	k8s.io/apiextensions-apiserver v0.22.5
-	k8s.io/apimachinery v0.22.5
+	k8s.io/api v0.23.0
+	k8s.io/apiextensions-apiserver v0.23.0
+	k8s.io/apimachinery v0.23.0
 	k8s.io/cli-runtime v0.22.5
-	k8s.io/client-go v0.22.5
+	k8s.io/client-go v0.23.0
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185
 	k8s.io/klog/v2 v2.40.1
 	k8s.io/kubectl v0.22.5
@@ -58,7 +58,7 @@ require (
 	knative.dev/eventing v0.29.0
 	knative.dev/pkg v0.0.0-20220118160532-77555ea48cd4
 	knative.dev/serving v0.29.0
-	sigs.k8s.io/controller-runtime v0.10.3
+	sigs.k8s.io/controller-runtime v0.11.0
 )
 
 replace (
