@@ -23,7 +23,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 operator:
-  image: docker.io/apache/camel-k:1.6.8
+  image: registry-proxy.engineering.redhat.com/rh-osbs/integration-camel-k-rhel8-operator:1.6.9
 
 platform:
   build:
