@@ -27,9 +27,9 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.50.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.35.0
+	github.com/prometheus/common v0.37.0
 	github.com/radovskyb/watcher v1.0.7
-	github.com/redhat-developer/service-binding-operator v1.1.0
+	github.com/redhat-developer/service-binding-operator v1.1.1
 	github.com/rs/xid v1.4.0
 	github.com/scylladb/go-set v1.0.2
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749
@@ -39,10 +39,10 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.12.0
 	github.com/stoewer/go-strcase v1.2.0
-	github.com/stretchr/testify v1.7.4
+	github.com/stretchr/testify v1.8.0
 	go.uber.org/automaxprocs v1.4.0
 	go.uber.org/multierr v1.6.0
-	go.uber.org/zap v1.21.0
+	go.uber.org/zap v1.22.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
