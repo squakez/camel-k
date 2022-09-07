@@ -1,7 +1,3 @@
-# Go vendor
-/vendor
-/github.com
-
 # Binary files
 /kamel
 /kamel.*
