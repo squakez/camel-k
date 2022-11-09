@@ -354,12 +354,35 @@ maven-overlay:
 kamel-overlay:
 	@echo "####### Copying kamel CLI to output build directory..."
 	mkdir -p build/_output/bin
-	cp kamel build/_output/bin
+ifeq ($(shell uname -m), arm64)
+  GOOS=linux GOARCH=arm64 go build $(GOFLAGS) -o build/_output/bin/kamel ./cmd/kamel/*.go
+else ifneq ($(shell uname -s 2>/dev/null || echo Unknown),Linux)
+  GOOS=linux go build $(GOFLAGS) -o build/_output/bin/kamel ./cmd/kamel/*.go
+else
+	@{ \
+  cp kamel build/_output/bin \
+  }
+endif
 
 images: build kamel-overlay maven-overlay bundle-kamelets
 	@echo "####### Building Camel K operator container image..."
 	mkdir -p build/_maven_output
 	docker build -t $(CUSTOM_IMAGE):$(CUSTOM_VERSION) -f build/Dockerfile .
+
+images-arch: build kamel-overlay maven-overlay bundle-kamelets
+	@echo "####### Building Camel K operator container image for multi architectures..."
+	mkdir -p build/_maven_output
+	docker buildx rm --all-inactive --force
+	docker buildx create --append --name builder
+ifeq ($(shell uname -m), x86_x64)
+  docker buildx build --platform=linux/amd64 -t $(CUSTOM_IMAGE):$(CUSTOM_VERSION) -f build/Dockerfile.arch .
+endif
+ifeq ($(shell uname -m), aarch64)
+	docker buildx build --platform=linux/arm64 -t $(CUSTOM_IMAGE):$(CUSTOM_VERSION) -f build/Dockerfile.arch .
+endif
+ifeq ($(shell uname -m), arm64)
+	docker buildx build --platform=linux/amd64 -t $(CUSTOM_IMAGE):$(CUSTOM_VERSION) -f build/Dockerfile.arch .
+endif
 
 images-dev: build kamel-overlay maven-overlay bundle-kamelets package-artifacts
 	@echo "####### Building Camel K operator container development image..."
