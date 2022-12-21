@@ -136,7 +136,21 @@ limitations under the License.
 endef
 
 export LICENSE_HEADER
+<<<<<<< HEAD
 default: test
+=======
+default: build
+
+update-docs: build-resources
+	./script/update_docs.sh
+
+bump-replace:
+	@# Bump version and replace with the variables provided by the user
+	@sed -i 's/^VERSION ?= .*$//VERSION ?= $(VERSION)/' ./script/Makefile
+	@sed -i 's/^LAST_RELEASED_VERSION ?= .*$//LAST_RELEASED_VERSION ?= $(LAST_RELEASED_VERSION)/' ./script/Makefile
+
+bump: bump-replace codegen bundle
+>>>>>>> 902b5303a (chore: update docs script)
 
 # Generates the version file
 codegen:
