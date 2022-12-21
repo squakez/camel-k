@@ -72,7 +72,8 @@ STAGING_IMAGE_NAME := docker.io/camelk/camel-k
 
 STAGING_RUNTIME_REPO :=
 
-# Define here the repo containing the default Kamelet catalog (if any)
+# Kamelets options
+INSTALL_DEFAULT_KAMELETS ?= true
 KAMELET_CATALOG_REPO := https://github.com/apache/camel-kamelets.git
 # Optional branch for the default Kamelet catalog (change this to a tag before release)
 KAMELET_CATALOG_REPO_BRANCH := v0.7.1
@@ -136,21 +137,7 @@ limitations under the License.
 endef
 
 export LICENSE_HEADER
-<<<<<<< HEAD
 default: test
-=======
-default: build
-
-update-docs: build-resources
-	./script/update_docs.sh
-
-bump-replace:
-	@# Bump version and replace with the variables provided by the user
-	@sed -i 's/^VERSION ?= .*$//VERSION ?= $(VERSION)/' ./script/Makefile
-	@sed -i 's/^LAST_RELEASED_VERSION ?= .*$//LAST_RELEASED_VERSION ?= $(LAST_RELEASED_VERSION)/' ./script/Makefile
-
-bump: bump-replace codegen bundle
->>>>>>> 902b5303a (chore: update docs script)
 
 # Generates the version file
 codegen:
@@ -305,12 +292,12 @@ build-resources:
 
 bundle-kamelets:
 ifneq (,$(findstring release,$(MAKECMDGOALS)))
-ifneq (,$(findstring $(KAMELET_CATALOG_REPO_BRANCH), main))
-	@echo "You cannot set KAMELET_CATALOG_REPO_BRANCH=$(KAMELET_CATALOG_REPO_BRANCH) when doing a release"
+ifneq (,$(findstring $(KAMELET_CATALOG_REPO_TAG), main))
+	@echo "You cannot set KAMELET_CATALOG_REPO_TAG=$(KAMELET_CATALOG_REPO_TAG) when doing a release"
 	@exit 1
 endif
 endif
-	./script/bundle_kamelets.sh $(KAMELET_CATALOG_REPO) $(KAMELET_CATALOG_REPO_BRANCH)
+	./script/bundle_kamelets.sh $(KAMELET_CATALOG_REPO) $(KAMELET_CATALOG_REPO_TAG)
 
 build-submodules:
 	./script/build_submodules.sh
