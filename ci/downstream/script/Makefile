@@ -72,7 +72,8 @@ STAGING_IMAGE_NAME := docker.io/camelk/camel-k
 
 STAGING_RUNTIME_REPO :=
 
-# Define here the repo containing the default Kamelet catalog (if any)
+# Kamelets options
+INSTALL_DEFAULT_KAMELETS ?= true
 KAMELET_CATALOG_REPO := https://github.com/apache/camel-kamelets.git
 # Optional branch for the default Kamelet catalog (change this to a tag before release)
 KAMELET_CATALOG_REPO_BRANCH := v0.7.1
@@ -291,12 +292,12 @@ build-resources:
 
 bundle-kamelets:
 ifneq (,$(findstring release,$(MAKECMDGOALS)))
-ifneq (,$(findstring $(KAMELET_CATALOG_REPO_BRANCH), main))
-	@echo "You cannot set KAMELET_CATALOG_REPO_BRANCH=$(KAMELET_CATALOG_REPO_BRANCH) when doing a release"
+ifneq (,$(findstring $(KAMELET_CATALOG_REPO_TAG), main))
+	@echo "You cannot set KAMELET_CATALOG_REPO_TAG=$(KAMELET_CATALOG_REPO_TAG) when doing a release"
 	@exit 1
 endif
 endif
-	./script/bundle_kamelets.sh $(KAMELET_CATALOG_REPO) $(KAMELET_CATALOG_REPO_BRANCH)
+	./script/bundle_kamelets.sh $(KAMELET_CATALOG_REPO) $(KAMELET_CATALOG_REPO_TAG)
 
 build-submodules:
 	./script/build_submodules.sh
