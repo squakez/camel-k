@@ -48,7 +48,12 @@ func (c *Command) Do(ctx context.Context) error {
 		return err
 	}
 
-	mvnCmd := "mvn"
+	// Prepare maven wrapper
+	if err := c.prepareMavenWrapper(ctx); err != nil {
+		return err
+	}
+
+	mvnCmd := "./mvnw"
 	if c, ok := os.LookupEnv("MAVEN_CMD"); ok {
 		mvnCmd = c
 	}
@@ -226,6 +231,36 @@ func generateProjectStructure(context Context, project Project) error {
 	}
 
 	return nil
+}
+
+// TODO make this maven agnostic
+func (c *Command) prepareMavenWrapper(ctx context.Context) error {
+	args := make([]string, 0)
+	args = append(args, "wrapper:wrapper")
+
+	if c.context.LocalRepository != "" {
+		if _, err := os.Stat(c.context.LocalRepository); err == nil {
+			args = append(args, "-Dmaven.repo.local="+c.context.LocalRepository)
+		}
+	}
+
+	settingsPath := filepath.Join(c.context.Path, "settings.xml")
+	if settingsExists, err := util.FileExists(settingsPath); err != nil {
+		return err
+	} else if settingsExists {
+		args = append(args, "--global-settings", settingsPath)
+	}
+
+	settingsPath = filepath.Join(c.context.Path, "user-settings.xml")
+	if settingsExists, err := util.FileExists(settingsPath); err != nil {
+		return err
+	} else if settingsExists {
+		args = append(args, "--settings", settingsPath)
+	}
+
+	cmd := exec.CommandContext(ctx, "mvn", args...)
+	cmd.Dir = c.context.Path
+	return util.RunAndLog(ctx, cmd, mavenLogHandler, mavenLogHandler)
 }
 
 // ParseGAV decodes the provided Maven GAV into the corresponding Dependency.
