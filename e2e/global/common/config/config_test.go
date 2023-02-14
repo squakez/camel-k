@@ -24,7 +24,7 @@ package resources
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -261,7 +261,7 @@ func TestRunConfigExamples(t *testing.T) {
 
 		t.Run("Base64 compressed binary resource file", func(t *testing.T) {
 			// We calculate the expected content
-			source, err := ioutil.ReadFile("./files/resources-data.txt")
+			source, err := os.ReadFile("./files/resources-data.txt")
 			assert.Nil(t, err)
 			expectedBytes, err := gzip.CompressBase64([]byte(source))
 			assert.Nil(t, err)

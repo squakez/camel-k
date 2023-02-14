@@ -26,7 +26,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -123,11 +122,11 @@ func TestRunDevMode(t *testing.T) {
 		t.Run("Dev mode resource file generated configmap", func(t *testing.T) {
 			var tmpFile *os.File
 			var err error
-			if tmpFile, err = ioutil.TempFile("", "camel-k-"); err != nil {
+			if tmpFile, err = os.CreateTemp("", "camel-k-"); err != nil {
 				t.Error(err)
 			}
 			assert.Nil(t, tmpFile.Close())
-			assert.Nil(t, ioutil.WriteFile(tmpFile.Name(), []byte("Hello from test!"), 0o644))
+			assert.Nil(t, os.WriteFile(tmpFile.Name(), []byte("Hello from test!"), 0o644))
 
 			RegisterTestingT(t)
 			ctx, cancel := context.WithCancel(TestContext)
@@ -161,7 +160,7 @@ func TestRunDevMode(t *testing.T) {
 			Expect(logScanner.IsFound("Goodbye from test!")()).To(BeFalse())
 
 			// cool, now let's change the file to confirm the sync take place
-			assert.Nil(t, ioutil.WriteFile(tmpFile.Name(), []byte("Goodbye from test!"), 0o644))
+			assert.Nil(t, os.WriteFile(tmpFile.Name(), []byte("Goodbye from test!"), 0o644))
 			Eventually(logScanner.IsFound("Goodbye from test!"), TestTimeoutMedium).Should(BeTrue())
 
 			Expect(Kamel("delete", "--all", "-n", ns).Execute()).To(Succeed())

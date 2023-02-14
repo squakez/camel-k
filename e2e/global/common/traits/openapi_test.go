@@ -23,7 +23,6 @@ limitations under the License.
 package traits
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -89,7 +88,7 @@ func TestOpenAPIConfigmap(t *testing.T) {
 		operatorID := "camel-k-trait-openapi-configmap"
 		Expect(KamelInstallWithID(operatorID, ns).Execute()).To(Succeed())
 
-		openapiContent, err := ioutil.ReadFile("./files/openapi/petstore-api.yaml")
+		openapiContent, err := os.ReadFile("./files/openapi/petstore-api.yaml")
 		assert.Nil(t, err)
 		var cmDataProps = make(map[string]string)
 		cmDataProps["petstore-api.yaml"] = string(openapiContent)
