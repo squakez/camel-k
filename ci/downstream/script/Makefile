@@ -137,7 +137,7 @@ limitations under the License.
 endef
 
 export LICENSE_HEADER
-default: test
+default: build
 
 # Generates the version file
 codegen:
