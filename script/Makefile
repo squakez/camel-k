@@ -433,6 +433,7 @@ ifneq (,$(findstring SNAPSHOT,$(RUNTIME_VERSION)))
 	./script/package_maven_artifacts.sh -s "$(STAGING_RUNTIME_REPO)" -d "$(CAMEL_K_RUNTIME_DIR)" $(RUNTIME_VERSION)
 endif
 	@echo "####### Building Camel K operator container image..."
+	./script/get_all_dependencies.sh $(RUNTIME_VERSION) "$(STAGING_RUNTIME_REPO)"
 	mkdir -p build/_maven_output
 	docker build -t $(CUSTOM_IMAGE):$(CUSTOM_VERSION) -f build/Dockerfile .
 
