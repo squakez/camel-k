@@ -18,7 +18,6 @@ VERSION ?= 1.10.1
 LAST_RELEASED_IMAGE_NAME := red-hat-camel-k-operator
 LAST_RELEASED_VERSION := 1.10.0
 RUNTIME_VERSION ?= 1.15.0
-RHI_VERSION := 2023.Q2
 BUILDAH_VERSION := 1.14.0
 KANIKO_VERSION := 0.17.1
 INSTALL_DEFAULT_KAMELETS := true
@@ -101,7 +100,6 @@ GOLDFLAGS += -X 'github.com/apache/camel-k/pkg/kamelet/repository.DefaultRemoteR
 GOLDFLAGS += -X 'github.com/apache/camel-k/pkg/install.KamelCLIDownloadName=redhat-kamel-cli'
 GOLDFLAGS += -X 'github.com/apache/camel-k/pkg/install.KamelCLIDownloadDisplayName=kamel - Red Hat Integration - Camel K - Command Line Interface'
 GOLDFLAGS += -X 'github.com/apache/camel-k/pkg/install.KamelCLIDownloadDescription=CLI for Red Hat Integration - Camel K. The \"kamel\" binary can be used to both configure the cluster and run integrations. Once you have downloaded the \"kamel\" binary, log into the cluster using the \"oc\" client tool and start using the \"kamel\" CLI.'
-GOLDFLAGS += -X 'github.com/apache/camel-k/pkg/util/label.AdditionalLabels=com.company=Red_Hat,rht.prod_name=Red_Hat_Integration,rht.prod_ver=$(RHI_VERSION),rht.comp=Camel-K,rht.comp_ver=$(VERSION),rht.subcomp=token_integration_name,rht.subcomp_t=application'
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -553,9 +551,6 @@ pre-bundle:
 	@sed -i 's/^  displayName: .*/  displayName: $(CSV_DISPLAY_NAME)/' $(CSV_PATH)
 	@sed -i 's/^  replaces: .*/  replaces: $(CSV_REPLACES)/' $(CSV_PATH)
 	@sed -i 's/^  version: .*/  version: $(CSV_VERSION)/' $(CSV_PATH)
-# update the patch label file before applying it
-	@sed -i 's/^        rht.comp_ver:.*/        rht.comp_ver: $(CUSTOM_VERSION)/' $(ADD_REDHAT_LABELS_PATCH)
-	@sed -i 's/^        rht.prod_ver:.*/        rht.prod_ver: $(RHI_VERSION)/' $(ADD_REDHAT_LABELS_PATCH)
 
 bundle: set-version generate-crd kustomize operator-sdk pre-bundle $(BUNDLE_CAMEL_APIS)
 	@# Sets the operator image to the preferred image:tag
