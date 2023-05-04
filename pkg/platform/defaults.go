@@ -77,9 +77,9 @@ func ConfigureDefaults(ctx context.Context, c client.Client, p *v1.IntegrationPl
 		log.Debugf("Integration Platform [%s]: setting publishing strategy %s", p.Namespace, p.Status.Build.PublishStrategy)
 	}
 
-	if p.Status.Build.BuildStrategy == "" {
-		p.Status.Build.BuildStrategy = v1.BuildStrategyPod
-		log.Debugf("Integration Platform [%s]: setting build strategy %s", p.Namespace, p.Status.Build.BuildStrategy)
+	if p.Status.Build.BuildConfiguration.Strategy == "" {
+		p.Status.Build.BuildConfiguration.Strategy = v1.BuildStrategyPod
+		log.Debugf("Integration Platform [%s]: setting build strategy %s", p.Namespace, p.Status.Build.BuildConfiguration.Strategy)
 	}
 
 	err := setPlatformDefaults(p, verbose)
@@ -87,7 +87,7 @@ func ConfigureDefaults(ctx context.Context, c client.Client, p *v1.IntegrationPl
 		return err
 	}
 
-	if p.Status.Build.BuildStrategy == v1.BuildStrategyPod {
+	if p.Status.Build.BuildConfiguration.Strategy == v1.BuildStrategyPod {
 		if err := CreateBuilderServiceAccount(ctx, c, p); err != nil {
 			return errors.Wrap(err, "cannot ensure service account is present")
 		}
@@ -247,9 +247,9 @@ func setPlatformDefaults(p *v1.IntegrationPlatform, verbose bool) error {
 	}
 
 	if p.Status.Build.MaxRunningBuilds <= 0 {
-		if p.Status.Build.BuildStrategy == v1.BuildStrategyRoutine {
+		if p.Status.Build.BuildConfiguration.Strategy == v1.BuildStrategyRoutine {
 			p.Status.Build.MaxRunningBuilds = 3
-		} else if p.Status.Build.BuildStrategy == v1.BuildStrategyPod {
+		} else if p.Status.Build.BuildConfiguration.Strategy == v1.BuildStrategyPod {
 			p.Status.Build.MaxRunningBuilds = 10
 		}
 	}
