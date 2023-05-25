@@ -30,13 +30,13 @@ on:
 
 jobs:
   main:
-    if: github.repository == 'apache/camel-k'
-    runs-on: ubuntu-20.04
+    # if: github.repository == 'apache/camel-k'
+    runs-on: ubuntu-latest
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v2
       with:
-        ref: main
+        ref: feat/4148
         persist-credentials: false
         submodules: recursive
     - name: Release main nightly
