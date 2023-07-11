@@ -4,7 +4,7 @@ This procedure describes all the steps required to release a new version of Apac
 It is not intended to be final, but rather a working document that needs to be updated when new requirements are found or
 the technical process changes.
 
-NOTE: starting Camel K version 2, the release process of Kamelets catalog and Camel K Runtime is independent.
+NOTE: starting Camel K version 2, the release process of Kamelets catalog and Camel K Runtime is independent. x
 
 [[releasing-settings]]
 == First time settings
