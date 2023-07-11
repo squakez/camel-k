@@ -1,4 +1,4 @@
-= Releasing Apache Camel K
+= Releasing Apache Camel K 2
 
 This procedure describes all the steps required to release a new version of Apache Camel K.
 It is not intended to be final, but rather a working document that needs to be updated when new requirements are found or
