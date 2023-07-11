@@ -28,7 +28,7 @@ import (
 // BuildSpec defines the list of tasks to be execute for a Build. From Camel K version 2, it would be more appropiate
 // to think it as pipeline.
 type BuildSpec struct {
-	// The sequence of tasks (pipeline) to be performed.
+	// The sequence of tasks (pipeline) to be performed. Edited.
 	Tasks []Task `json:"tasks,omitempty"`
 	// The configuration that should be used to perform the Build.
 	// Deprecated: no longer in use in Camel K 2 - maintained for backward compatibility
