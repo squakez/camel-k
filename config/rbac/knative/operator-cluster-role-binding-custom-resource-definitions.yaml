@@ -15,24 +15,17 @@
 # limitations under the License.
 # ---------------------------------------------------------------------------
 
-config:
-  namespace:
-    temporary: true
-pre:
-- name: knative configuration
-  run: |
-    cd ../../../../config/rbac/knative
-    kustomize edit set namespace $YAKS_NAMESPACE
-    kubectl apply -k .
-- name: installation
-  run: |
-    kubectl apply -n $YAKS_NAMESPACE -f messages-channel.yaml
-
-    kamel run receiver.groovy -w -n $YAKS_NAMESPACE
-    kamel run source.yaml -w -n $YAKS_NAMESPACE -t knative.sink-binding=true
-
-    kubectl wait integration --all --for=condition=Ready --timeout=10m -n $YAKS_NAMESPACE
-post:
-  - name: print dump
-    if: env:CI=true && failure()
-    run: yaks dump --includes app=camel-k
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: camel-k-operator-custom-resource-definitions
+  labels:
+    app: "camel-k"
+subjects:
+- kind: ServiceAccount
+  name: camel-k-operator
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: camel-k-operator-custom-resource-definitions
+  apiGroup: rbac.authorization.k8s.io

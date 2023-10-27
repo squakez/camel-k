@@ -18,6 +18,12 @@
 config:
   namespace:
     temporary: true
+pre:
+- name: knative configuration
+  run: |
+    cd ../../../../config/rbac/knative
+    kustomize edit set namespace $YAKS_NAMESPACE
+    kubectl apply -k .
 post:
   - name: print dump
     if: env:CI=true && failure()

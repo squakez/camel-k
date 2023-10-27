@@ -1,0 +1,33 @@
+= Knative installation
+
+"https://knative.dev[Knative] is an Open-Source Enterprise-level solution to build Serverless and Event Driven Applications. The effort done in this project is a great complement to Camel K, which can leverage natively some feature offered by Knative. In particular, Camel K will be able to leverage "scale to 0" (hence, serverless) feature offered by Knative.
+
+NOTE: Knative is an optional configuration. It is not required to run Camel K.
+
+[[install-knative]]
+== Knative roles configuration
+
+Camel K needs to have certain privileges to use the resources used by Knative. We have identified them, so, it follows a few configuration that you will need to apply in order to make Camel K work with Knative.
+
+NOTE: We assume you have already both the Knative operator and the Camel K operator up and running. If not, the first step is to install both operator. See the guide on xref:installation/installation.adoc[how to install Camel K] and the guide on https://knative.dev/docs/install/[how to install Knative] respectively.
+
+Once all the resources are installed in the cluster, you'll need to perform the following action:
+
+```bash
+kubectl apply -k https://github.com/apache/camel-k/tree/main/config/rbac/knative?ref=v2.1.0
+```
+
+The configuration above is using the released version `2.1.0`. You may want to use instead another version or the latest development available on `main` branch. Something else you need to know is that, by default, that configuration above will use `default` namespace. In order to change it, you must perform some customization locally in a similar fashion:
+
+```bash
+git clone https://github.com/apache/camel-k.git
+cd camel-k/config/rbac/knative
+kustomize edit set namespace <my-namespace>
+kubectl apply -k .
+```
+
+NOTE: you will need `kustomize` CLI available.
+
+As the installation procedure can vary depending on the cluster and the methodology you use (Helm, OLM, Kustomize, ...), feel free to customize in the way that it results more convenient. In the `/config/rbac/knative` you will already find the basic `kustomization.yaml` on top of which you may provide any further level of customization.
+
+From now on you should be able to run some Camel application leveraging Knative with Camel K (see https://github.com/apache/camel-k-examples/tree/main/generic-examples/knative[examples]).

@@ -41,7 +41,6 @@ import (
 	"github.com/apache/camel-k/v2/pkg/client"
 	"github.com/apache/camel-k/v2/pkg/resources"
 	"github.com/apache/camel-k/v2/pkg/util/envvar"
-	"github.com/apache/camel-k/v2/pkg/util/knative"
 	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
 	"github.com/apache/camel-k/v2/pkg/util/minikube"
 	"github.com/apache/camel-k/v2/pkg/util/openshift"
@@ -283,24 +282,6 @@ func OperatorOrCollect(ctx context.Context, cmd *cobra.Command, c client.Client,
 		return err
 	}
 
-	// Additionally, install Knative resources (roles and bindings)
-	isKnative, err := knative.IsInstalled(c)
-	if err != nil {
-		return err
-	}
-	if isKnative {
-		if err := installKnative(ctx, c, cfg.Namespace, customizer, collection, force); err != nil {
-			return err
-		}
-		if err := installClusterRoleBinding(ctx, c, collection, cfg.Namespace, "camel-k-operator-bind-addressable-resolver", "/rbac/operator-cluster-role-binding-addressable-resolver.yaml"); err != nil {
-			if k8serrors.IsForbidden(err) {
-				fmt.Fprintln(cmd.ErrOrStderr(), "Warning: the operator will not be able to bind Knative addressable-resolver ClusterRole. Try installing the operator as cluster-admin.")
-			} else {
-				return err
-			}
-		}
-	}
-
 	if err = installEvents(ctx, c, cfg.Namespace, customizer, collection, force); err != nil {
 		if k8serrors.IsAlreadyExists(err) {
 			return err
@@ -509,13 +490,6 @@ func installKedaBindings(ctx context.Context, c client.Client, namespace string,
 	return ResourcesOrCollect(ctx, c, namespace, collection, force, customizer,
 		"/rbac/operator-role-keda.yaml",
 		"/rbac/operator-role-binding-keda.yaml",
-	)
-}
-
-func installKnative(ctx context.Context, c client.Client, namespace string, customizer ResourceCustomizer, collection *kubernetes.Collection, force bool) error {
-	return ResourcesOrCollect(ctx, c, namespace, collection, force, customizer,
-		"/rbac/operator-role-knative.yaml",
-		"/rbac/operator-role-binding-knative.yaml",
 	)
 }
 

@@ -19,6 +19,11 @@ config:
   namespace:
     temporary: true
 pre:
+- name: knative configuration
+  run: |
+    cd ../../../../config/rbac/knative
+    kustomize edit set namespace $YAKS_NAMESPACE
+    kubectl apply -k .
 - name: installation
   run: |
     kubectl -n knative-eventing set env deployments eventing-webhook --containers="eventing-webhook" SINK_BINDING_SELECTION_MODE=inclusion

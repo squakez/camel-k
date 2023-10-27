@@ -23,6 +23,8 @@ limitations under the License.
 package support
 
 import (
+	"os/exec"
+	"path"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -48,4 +50,13 @@ func TestKNativeCamelKInstallStartup(t *testing.T) {
 	Eventually(Platform(ns.GetName())).ShouldNot(BeNil())
 	Eventually(PlatformConditionStatus(ns.GetName(), v1.IntegrationPlatformConditionTypeCreated), TestTimeoutShort).
 		Should(Equal(corev1.ConditionTrue))
+
+	testDir := "../../../"
+	// Configure Knative RBAC
+	kustomizeCmd := exec.Command("kustomize", "edit", "set", "namespace", ns.GetName())
+	kustomizeCmd.Dir = path.Join(testDir, "config/rbac/knative")
+	kubectlApplyCmd := exec.Command("kubectl", "apply", "-k", ".")
+	kubectlApplyCmd.Dir = path.Join(testDir, "config/rbac/knative")
+	ExpectExecSucceed(t, kustomizeCmd)
+	ExpectExecSucceed(t, kubectlApplyCmd)
 }
