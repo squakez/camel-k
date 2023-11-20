@@ -163,3 +163,20 @@ type Finder interface {
 }
 
 var _ Finder = &Catalog{}
+
+func (c *Catalog) reverse(environment *Environment) (*v1.Traits, error) {
+	resultTraits := v1.Traits{}
+	// TODO scan for profile !?
+	traits := c.TraitsForProfile(v1.TraitProfileKubernetes)
+	// reverse ordering
+	sort.SliceStable(traits, func(i, j int) bool {
+		return traits[i].Order() > traits[j].Order()
+	})
+	for _, trait := range traits {
+		err := trait.Reverse(environment, &resultTraits)
+		if err != nil {
+			return nil, fmt.Errorf("trait %s: %w", trait.ID(), err)
+		}
+	}
+	return &resultTraits, nil
+}

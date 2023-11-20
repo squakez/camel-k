@@ -46,4 +46,6 @@ type DeploymentTrait struct {
 	// Absolute number is calculated from percentage by rounding up.
 	// Defaults to 25%.
 	RollingUpdateMaxSurge *int `property:"rolling-update-max-surge" json:"rollingUpdateMaxSurge,omitempty"`
+	// An existing deployment name to use, instead of creating one.
+	Name string `property:"name" json:"name,omitempty"`
 }

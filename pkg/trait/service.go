@@ -20,14 +20,13 @@ package trait
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
-
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
 	"github.com/apache/camel-k/v2/pkg/metadata"
 	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 type serviceTrait struct {
@@ -141,4 +140,35 @@ func getServiceFor(e *Environment) *corev1.Service {
 			},
 		},
 	}
+}
+
+func (t *serviceTrait) Reverse(e *Environment, traits *v1.Traits) error {
+	deploymentName := e.Integration.Annotations["camel.apache.org/imported-by"]
+	svcs, err := e.Client.CoreV1().Services(e.Integration.Namespace).List(e.Ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s", deploymentName),
+	},
+	)
+	if err != nil {
+		return err
+	}
+	if svcs != nil {
+		svc := svcs.Items[0]
+		if traits.Container == nil {
+			traits.Container = &traitv1.ContainerTrait{}
+		}
+		expose := true
+		auto := false
+		traits.Container.Expose = &expose
+		if traits.Service == nil {
+			traits.Service = &traitv1.ServiceTrait{
+				Auto: &auto,
+				Type: (*traitv1.ServiceType)(&svc.Spec.Type),
+			}
+		}
+
+		svc.Labels[v1.IntegrationLabel] = e.Integration.Name
+		e.Resources.Add(&svc)
+	}
+
+	return nil
 }

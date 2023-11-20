@@ -86,7 +86,10 @@ func (t *deploymentTrait) ControllerStrategySelectorOrder() int {
 }
 
 func (t *deploymentTrait) Apply(e *Environment) error {
-	deployment := t.getDeploymentFor(e)
+	deployment := e.Resources.GetDeploymentForIntegration(e.Integration)
+	if deployment == nil {
+		deployment = t.getDeploymentFor(e)
+	}
 	e.Resources.Add(deployment)
 
 	e.Integration.Status.SetCondition(
@@ -100,6 +103,13 @@ func (t *deploymentTrait) Apply(e *Environment) error {
 }
 
 func (t *deploymentTrait) getDeploymentFor(e *Environment) *appsv1.Deployment {
+	if t.Name != "" {
+		deploy, err := e.Client.AppsV1().Deployments(e.Integration.Namespace).Get(e.Ctx, t.Name, metav1.GetOptions{})
+		if err != nil {
+			t.L.ForIntegration(e.Integration).Errorf(err, "Integration %s/%s tried to load Deployment by name %s", e.Integration.Namespace, e.Integration.Name, t.Name)
+		}
+		return deploy
+	}
 	// create a copy to avoid sharing the underlying annotation map
 	annotations := make(map[string]string)
 	if e.Integration.Annotations != nil {
@@ -190,4 +200,27 @@ func (t *deploymentTrait) getDeploymentFor(e *Environment) *appsv1.Deployment {
 	deployment.Spec.Replicas = replicas
 
 	return &deployment
+}
+
+func (t *deploymentTrait) Reverse(e *Environment, traits *v1.Traits) error {
+	deploymentName := e.Integration.Annotations["camel.apache.org/imported-by"]
+	dpls, err := e.Client.AppsV1().Deployments(e.Integration.Namespace).List(e.Ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s", deploymentName),
+	},
+	)
+	if err != nil {
+		return err
+	}
+	if dpls != nil {
+		dpl := dpls.Items[0]
+		if traits.Deployment == nil {
+			traits.Deployment = &traitv1.DeploymentTrait{}
+		}
+		traits.Deployment.Name = deploymentName
+
+		dpl.Labels[v1.IntegrationLabel] = e.Integration.Name
+		e.Resources.Add(&dpl)
+	}
+
+	return nil
 }

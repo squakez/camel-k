@@ -134,3 +134,29 @@ func newEnvironment(ctx context.Context, c client.Client, integration *v1.Integr
 
 	return &env, nil
 }
+
+func Reverse(ctx context.Context, c client.Client, it *v1.Integration) (*v1.Integration, error) {
+	newIt := it.DeepCopy()
+	e, err := newEnvironment(ctx, c, newIt, nil)
+	if err != nil {
+		return e.Integration, fmt.Errorf("error creating trait environment: %w", err)
+	}
+	catalog := NewCatalog(c)
+	e.Catalog = catalog
+
+	traits, err := catalog.reverse(e)
+	if err != nil {
+		return e.Integration, err
+	}
+	newIt.Spec.Traits = *traits
+
+	// execute post actions registered by traits
+	for _, postAction := range e.PostActions {
+		err := postAction(e)
+		if err != nil {
+			return e.Integration, fmt.Errorf("error executing reverse post actions: %w", err)
+		}
+	}
+
+	return e.Integration, nil
+}

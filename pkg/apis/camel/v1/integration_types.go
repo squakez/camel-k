@@ -155,6 +155,8 @@ const (
 	IntegrationPhaseRunning IntegrationPhase = "Running"
 	// IntegrationPhaseError --.
 	IntegrationPhaseError IntegrationPhase = "Error"
+	// IntegrationPhaseImporting --.
+	IntegrationPhaseImporting IntegrationPhase = "Importing from Deployment"
 
 	// IntegrationConditionKitAvailable --.
 	IntegrationConditionKitAvailable IntegrationConditionType = "IntegrationKitAvailable"
@@ -182,6 +184,10 @@ const (
 	IntegrationConditionReady IntegrationConditionType = "Ready"
 	// IntegrationConditionTraitInfo --.
 	IntegrationConditionTraitInfo IntegrationConditionType = "TraitInfo"
+	// IntegrationConditionImporting --.
+	IntegrationConditionImporting IntegrationConditionType = "Importing"
+	// IntegrationConditionImporting --.
+	IntegrationConditionImported IntegrationConditionType = "Imported"
 	// IntegrationConditionKitAvailableReason --.
 	IntegrationConditionKitAvailableReason string = "IntegrationKitAvailable"
 	// IntegrationConditionPlatformAvailableReason --.
@@ -242,6 +248,8 @@ const (
 
 	// IntegrationConditionInitializationFailedReason --.
 	IntegrationConditionInitializationFailedReason string = "InitializationFailed"
+	// IntegrationConditionImportReason --.
+	IntegrationConditionImportReason string = "Import"
 	// IntegrationConditionUnsupportedLanguageReason --.
 	IntegrationConditionUnsupportedLanguageReason string = "UnsupportedLanguage"
 

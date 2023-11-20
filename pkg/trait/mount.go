@@ -25,11 +25,14 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	serving "knative.dev/serving/pkg/apis/serving/v1"
 
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
 	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/resource"
 	utilResource "github.com/apache/camel-k/v2/pkg/util/resource"
 )
 
@@ -62,8 +65,8 @@ func (t *mountTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
 		}
 	}
 
-	// mount trait needs always to be executed as it will process the sources
-	return true, nil, nil
+	// mount trait needs always to be executed when there are sources
+	return len(e.Integration.Sources()) > 0, nil, nil
 }
 
 func (t *mountTrait) Apply(e *Environment) error {
@@ -160,6 +163,48 @@ func (t *mountTrait) mountResource(vols *[]corev1.Volume, mnts *[]corev1.VolumeM
 	}
 	mnt := getMount(refName, mntPath, dstFile, readOnly)
 
-	*vols = append(*vols, *vol)
-	*mnts = append(*mnts, *mnt)
+	if !exists(*vols, *vol) {
+		*vols = append(*vols, *vol)
+		*mnts = append(*mnts, *mnt)
+	} else {
+		t.L.Infof("Volume %s already exists in the deployment, won't include it again.", vol.Name)
+	}
+}
+
+func exists(vols []corev1.Volume, vol corev1.Volume) bool {
+	for _, v := range vols {
+		if v.Name == vol.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *mountTrait) Reverse(e *Environment, traits *v1.Traits) error {
+	deploymentName := e.Integration.Annotations["camel.apache.org/imported-by"]
+	deploy, err := e.Client.AppsV1().Deployments(e.Integration.Namespace).Get(e.Ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if deploy.Spec.Template.Spec.Volumes == nil || len(deploy.Spec.Template.Spec.Volumes) == 0 {
+		return nil
+	}
+	if traits.Mount == nil {
+		traits.Mount = &traitv1.MountTrait{
+			Configs: make([]string, 0),
+		}
+	}
+	for _, vol := range deploy.Spec.Template.Spec.Volumes {
+		var config *resource.Config
+		switch {
+		case vol.ConfigMap != nil:
+			// TODO must parse the real value, this is just for POC purposes
+			// We must also improve the trait in order to let the user specify the volume name
+			if config, err = resource.ParseConfig("configmap:my-cm@/tmp/app/data"); err != nil {
+				return err
+			}
+			traits.Mount.Configs = append(traits.Mount.Configs, config.String())
+		}
+	}
+	return nil
 }
