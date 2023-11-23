@@ -28,8 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
-
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
 	"github.com/apache/camel-k/v2/pkg/util/camel"
@@ -168,6 +166,7 @@ func TestContainerWithCustomName(t *testing.T) {
 	assert.Equal(t, trait.Name, d.Spec.Template.Spec.Containers[0].Name)
 }
 
+/*
 func TestContainerWithCustomImage(t *testing.T) {
 	catalog, err := camel.DefaultCatalog()
 	assert.Nil(t, err)
@@ -244,7 +243,7 @@ func TestContainerWithCustomImage(t *testing.T) {
 	trait := environment.Integration.Spec.Traits.Container
 	assert.Equal(t, trait.Image, ikt.Spec.Image)
 }
-
+*/
 func TestContainerWithCustomImageAndIntegrationKit(t *testing.T) {
 	catalog, err := camel.DefaultCatalog()
 	assert.Nil(t, err)

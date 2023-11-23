@@ -26,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 
@@ -130,33 +131,35 @@ func (t *containerTrait) configureImageIntegrationKit(e *Environment) error {
 				e.Integration.Spec.IntegrationKit)
 		}
 
-		kitName := fmt.Sprintf("kit-%s", e.Integration.Name)
-		kit := v1.NewIntegrationKit(e.Integration.Namespace, kitName)
-		kit.Spec.Image = t.Image
+		kit := newExternalKit(e, t.Image)
 
-		// Add some information for post-processing, this may need to be refactored
-		// to a proper data structure
-		kit.Labels = map[string]string{
-			v1.IntegrationKitTypeLabel:            v1.IntegrationKitTypeExternal,
-			kubernetes.CamelCreatorLabelKind:      v1.IntegrationKind,
-			kubernetes.CamelCreatorLabelName:      e.Integration.Name,
-			kubernetes.CamelCreatorLabelNamespace: e.Integration.Namespace,
-			kubernetes.CamelCreatorLabelVersion:   e.Integration.ResourceVersion,
-		}
-
-		if v, ok := e.Integration.Annotations[v1.PlatformSelectorAnnotation]; ok {
-			v1.SetAnnotation(&kit.ObjectMeta, v1.PlatformSelectorAnnotation, v)
-		}
-		operatorID := defaults.OperatorID()
-		if operatorID != "" {
-			kit.SetOperatorID(operatorID)
-		}
-
-		t.L.Infof("image %s", kit.Spec.Image)
 		e.Resources.Add(kit)
 		e.Integration.SetIntegrationKit(kit)
 	}
 	return nil
+}
+
+func newExternalKit(e *Environment, image string) *v1.IntegrationKit {
+	kitName := fmt.Sprintf("kit-%s", e.Integration.Name)
+	kit := v1.NewIntegrationKit(e.Integration.Namespace, kitName)
+	kit.Spec.Image = image
+	kit.Labels = map[string]string{
+		v1.IntegrationKitTypeLabel:            v1.IntegrationKitTypeExternal,
+		kubernetes.CamelCreatorLabelKind:      v1.IntegrationKind,
+		kubernetes.CamelCreatorLabelName:      e.Integration.Name,
+		kubernetes.CamelCreatorLabelNamespace: e.Integration.Namespace,
+		kubernetes.CamelCreatorLabelVersion:   e.Integration.ResourceVersion,
+	}
+
+	if v, ok := e.Integration.Annotations[v1.PlatformSelectorAnnotation]; ok {
+		v1.SetAnnotation(&kit.ObjectMeta, v1.PlatformSelectorAnnotation, v)
+	}
+	operatorID := defaults.OperatorID()
+	if operatorID != "" {
+		kit.SetOperatorID(operatorID)
+	}
+
+	return kit
 }
 
 func (t *containerTrait) configureContainer(e *Environment) error {
@@ -251,7 +254,7 @@ func (t *containerTrait) configureContainer(e *Environment) error {
 		return err
 	}
 
-	if visited {
+	if visited && !contains(*containers, &container) {
 		*containers = append(*containers, container)
 	}
 
@@ -294,10 +297,21 @@ func (t *containerTrait) configureService(e *Environment, container *corev1.Cont
 	)
 
 	container.Ports = append(container.Ports, containerPort)
-	service.Spec.Ports = append(service.Spec.Ports, servicePort)
+	if !serviceContainsPort(service.Spec.Ports, servicePort) {
+		service.Spec.Ports = append(service.Spec.Ports, servicePort)
+	}
 
 	// Mark the service as a user service
 	service.Labels["camel.apache.org/service.type"] = v1.ServiceTypeUser
+}
+
+func serviceContainsPort(ports []corev1.ServicePort, port corev1.ServicePort) bool {
+	for _, p := range ports {
+		if p.Name == port.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func (t *containerTrait) configureResources(container *corev1.Container) {
@@ -352,4 +366,29 @@ func (t *containerTrait) configureSecurityContext(e *Environment, container *cor
 // It's a user provided image if it does not match the naming convention used by Camel K Integration Kits.
 func (t *containerTrait) hasUserProvidedImage() bool {
 	return t.Image != "" && !strings.Contains(t.Image, "camel-k-kit-")
+}
+
+func (t *containerTrait) Reverse(e *Environment, traits *v1.Traits) error {
+	deploymentName := e.Integration.Annotations["camel.apache.org/imported-by"]
+	deploy, err := e.Client.AppsV1().Deployments(e.Integration.Namespace).Get(e.Ctx, deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if traits.Container == nil {
+		traits.Container = &traitv1.ContainerTrait{}
+	}
+	traits.Container.Image = deploy.Spec.Template.Spec.Containers[0].Image
+	traits.Container.Name = deploy.Spec.Template.Spec.Containers[0].Name
+
+	return nil
+}
+
+func contains(containers []corev1.Container, container *corev1.Container) bool {
+	for _, c := range containers {
+		if c.Name == container.Name {
+			return true
+		}
+	}
+
+	return false
 }

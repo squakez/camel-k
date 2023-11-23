@@ -66,6 +66,9 @@ type Trait interface {
 	// Apply executes a customization of the Environment
 	Apply(environment *Environment) error
 
+	// Reverse parses the environment to return a given trait configuration.
+	Reverse(environment *Environment, traits *v1.Traits) error
+
 	// InfluencesKit determines if the trait has any influence on Integration Kits
 	InfluencesKit() bool
 
@@ -175,6 +178,11 @@ func (trait *BaseTrait) IsAllowedInProfile(v1.TraitProfile) bool {
 // Order contains the order value provided during initialization.
 func (trait *BaseTrait) Order() int {
 	return trait.ExecutionOrder
+}
+
+// Reverse parses the environment to return a given trait configuration.
+func (trait *BaseTrait) Reverse(environment *Environment, traits *v1.Traits) error {
+	return nil
 }
 
 // BasePlatformTrait is the root for platform traits with noop implementations for hooks.
@@ -699,6 +707,7 @@ func (e *Environment) GetIntegrationContainerName() string {
 			containerName = ct.Name
 		}
 	}
+
 	return containerName
 }
 

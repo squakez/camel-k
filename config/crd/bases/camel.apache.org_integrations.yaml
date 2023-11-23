@@ -6719,6 +6719,10 @@ spec:
                       enabled:
                         description: 'Deprecated: no longer in use.'
                         type: boolean
+                      name:
+                        description: An existing deployment name to use, instead of
+                          creating one.
+                        type: string
                       progressDeadlineSeconds:
                         description: The maximum time in seconds for the deployment
                           to make progress before it is considered to be failed. It

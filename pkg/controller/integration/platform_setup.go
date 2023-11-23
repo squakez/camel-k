@@ -74,7 +74,11 @@ func (action *platformSetupAction) Handle(ctx context.Context, integration *v1.I
 	// so that traits targeting Initialization phase don't get applied unintentionally
 	// at the platform setup step.
 	if integration.Status.Phase != v1.IntegrationPhaseWaitingForPlatform {
-		integration.Status.Phase = v1.IntegrationPhaseInitialization
+		if integration.Annotations["camel.apache.org/imported-by"] == "" {
+			integration.Status.Phase = v1.IntegrationPhaseInitialization
+		} else {
+			integration.Status.Phase = v1.IntegrationPhaseImporting
+		}
 	}
 
 	return integration, nil

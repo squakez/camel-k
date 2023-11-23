@@ -6338,6 +6338,13 @@ This can not be 0 if MaxUnavailable is 0.
 Absolute number is calculated from percentage by rounding up.
 Defaults to 25%.
 
+|`name` +
+string
+|
+
+
+An existing deployment name to use, instead of creating one.
+
 
 |===
 

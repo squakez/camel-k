@@ -506,6 +506,9 @@ traits:
       number of pods. Value can be an absolute number (ex: 5) or a percentage of desired
       pods (ex: 10%). This can not be 0 if MaxUnavailable is 0. Absolute number is
       calculated from percentage by rounding up. Defaults to 25%.'
+  - name: name
+    type: string
+    description: An existing deployment name to use, instead of creating one.
 - name: environment
   platform: true
   profiles:

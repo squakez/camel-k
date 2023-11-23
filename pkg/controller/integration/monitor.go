@@ -261,7 +261,7 @@ func (action *monitorAction) newController(env *trait.Environment, integration *
 	var controller controller
 	var obj ctrl.Object
 	switch {
-	case integration.IsConditionTrue(v1.IntegrationConditionDeploymentAvailable):
+	case integration.IsConditionTrue(v1.IntegrationConditionDeploymentAvailable) || integration.IsConditionTrue(v1.IntegrationConditionImporting):
 		obj = getUpdatedController(env, &appsv1.Deployment{})
 		deploy, ok := obj.(*appsv1.Deployment)
 		if !ok {

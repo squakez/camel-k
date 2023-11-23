@@ -466,6 +466,7 @@ func (r *reconcileIntegration) Reconcile(ctx context.Context, request reconcile.
 
 	actions := []Action{
 		NewPlatformSetupAction(),
+		NewImportAction(),
 		NewInitializeAction(),
 		newBuildKitAction(),
 		NewMonitorAction(),
