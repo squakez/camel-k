@@ -20,20 +20,26 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
 
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/client/camel/clientset/versioned/scheme"
 	"github.com/apache/camel-k/v2/pkg/trait"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/remotecommand"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // NewImportAction creates a new import action.
-func NewImportAction() Action {
-	return &importAction{}
+func NewImportAction(reader ctrl.Reader) Action {
+	return &importAction{
+		reader: reader,
+	}
 }
 
 type importAction struct {
 	baseAction
+	reader ctrl.Reader
 }
 
 // Name returns a common name of the action.
@@ -43,11 +49,14 @@ func (action *importAction) Name() string {
 
 // CanHandle tells whether this action can handle the integration.
 func (action *importAction) CanHandle(integration *v1.Integration) bool {
-	return integration.Status.Phase == v1.IntegrationPhaseImporting
+	return integration.Status.Phase == v1.IntegrationPhaseImporting || integration.Status.Phase == v1.IntegrationPhaseRunning
 }
 
 // Handle handles the integrations.
 func (action *importAction) Handle(ctx context.Context, it *v1.Integration) (*v1.Integration, error) {
+	if it.Status.Phase == v1.IntegrationPhaseRunning {
+		return action.inspectPod(ctx, it)
+	}
 	action.L.Info("Importing from existing deployment")
 	// Reverse trait logic (from environment to Integration)
 	newIt, err := trait.Reverse(ctx, action.client, it)
@@ -72,4 +81,76 @@ func (action *importAction) Handle(ctx context.Context, it *v1.Integration) (*v1
 	)
 
 	return newIt, nil
+}
+
+func (action *importAction) inspectPod(ctx context.Context, it *v1.Integration) (*v1.Integration, error) {
+	pod, err := getItPod(ctx, action.reader, it)
+	if err != nil {
+		fmt.Println("Error while loading pod:", err)
+		return it, err
+	}
+	if err = action.getPom(ctx, pod); err != nil {
+		if err != nil {
+			fmt.Println("Error while reading from pod:", err)
+			return it, err
+		}
+	}
+
+	return it, nil
+}
+
+func getItPod(ctx context.Context, c ctrl.Reader, it *v1.Integration) (*corev1.Pod, error) {
+	pods := corev1.PodList{}
+	err := c.List(ctx, &pods,
+		ctrl.InNamespace(it.Namespace),
+		ctrl.MatchingLabels{v1.IntegrationLabel: it.Name},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &pods.Items[0], nil
+}
+
+func (action *importAction) getPom(ctx context.Context, pod *corev1.Pod) error {
+	fmt.Println("Reading from Pod", pod.GetName())
+
+	for _, container := range pod.Status.ContainerStatuses {
+		fmt.Println("Executing on container", container.Name, container.State)
+		if container.State.Running == nil {
+			continue
+		}
+		r := action.client.CoreV1().RESTClient().Post().
+			Resource("pods").
+			Namespace(pod.Namespace).
+			Name(pod.Name).
+			SubResource("exec").
+			Param("container", container.Name)
+
+		r.VersionedParams(&corev1.PodExecOptions{
+			Container: container.Name,
+			//Command:   []string{"/bin/bash", "-c", "cd /deployments/ && jar -xvf my-camel-app.jar && cat META-INF/maven/org.acme/my-service/pom.xml"},
+			Command: []string{"/bin/bash", "-c", "kill -SIGTERM 1"},
+			Stdout:  true,
+			Stderr:  true,
+			TTY:     false,
+		}, scheme.ParameterCodec)
+
+		exec, err := remotecommand.NewSPDYExecutor(action.client.GetConfig(), "POST", r.URL())
+		if err != nil {
+			fmt.Println("NewSPDYExecutor error")
+			return err
+		}
+
+		err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+			Tty:    false,
+		})
+		if err != nil {
+			fmt.Println("StreamWithContext error")
+			return err
+		}
+	}
+
+	return nil
 }
