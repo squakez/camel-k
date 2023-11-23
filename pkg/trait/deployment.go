@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -31,7 +30,6 @@ import (
 
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
-	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
 )
 
 type deploymentTrait struct {
@@ -91,9 +89,6 @@ func (t *deploymentTrait) ControllerStrategySelectorOrder() int {
 
 func (t *deploymentTrait) Apply(e *Environment) error {
 	deployment := e.Resources.GetDeploymentForIntegration(e.Integration)
-	// if deployment == nil {
-	// 	deployment = t.loadDeploymentFor(e)
-	// }
 	if deployment == nil {
 		deployment = t.getDeploymentFor(e)
 	}
@@ -183,28 +178,6 @@ func toDeployment(u *unstructured.Unstructured) (*appsv1.Deployment, error) {
 	return d, nil
 }
 
-func (t *deploymentTrait) loadDeploymentFor(e *Environment) *appsv1.Deployment {
-	if t.Name != "" {
-		unstr, err := kubernetes.GetUnstructured(
-			e.Ctx, e.Client,
-			schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"},
-			t.Name,
-			e.Integration.Namespace,
-		)
-		if err != nil {
-			t.L.ForIntegration(e.Integration).Errorf(err, "Integration %s/%s tried to load Deployment by name %s", e.Integration.Namespace, e.Integration.Name, t.Name)
-		}
-		deployment, err := toDeployment(unstr)
-		if err != nil {
-			t.L.ForIntegration(e.Integration).Errorf(err, "Integration %s/%s tried to unmarshal Deployment by name %s", e.Integration.Namespace, e.Integration.Name, t.Name)
-		}
-		deployment.SetManagedFields(nil)
-		return deployment
-	}
-
-	return nil
-}
-
 func (t *deploymentTrait) getDeploymentFor(e *Environment) *appsv1.Deployment {
 	deployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -235,24 +208,6 @@ func (t *deploymentTrait) getDeploymentFor(e *Environment) *appsv1.Deployment {
 		},
 	}
 
-	// TODO, fix according to the import feature, hardcoded for POC
-	if t.Name != "" {
-		deployment.Name = t.Name
-		deployment.Labels["app"] = "my-camel-sb-svc"
-		deployment.Spec.Selector = &metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app": "my-camel-sb-svc",
-			},
-		}
-		deployment.Spec.Template = corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"app": "my-camel-sb-svc",
-				},
-			},
-		}
-	}
-
 	return &deployment
 }
 
@@ -270,22 +225,8 @@ func (t *deploymentTrait) Reverse(e *Environment, traits *v1.Traits) error {
 		if traits.Deployment == nil {
 			traits.Deployment = &traitv1.DeploymentTrait{}
 		}
-		traits.Deployment.Name = deploymentName
-
+		// TODO include any further deployment configuration
 		e.Resources.Add(&dpl)
-		// clearManagedFields := `[{"op": "replace", "path": "/metadata/managedFields", "value": [{}]}]`
-		// patched, err := e.Client.AppsV1().Deployments(e.Integration.Namespace).Patch(
-		// 	e.Ctx,
-		// 	dpl.GetName(),
-		// 	types.JSONPatchType,
-		// 	[]byte(clearManagedFields),
-		// 	metav1.PatchOptions{FieldManager: "camel-k-operator"},
-		// )
-		// if err != nil {
-		// 	return err
-		// }
-
-		// e.Resources.Add(patched)
 	}
 
 	return nil

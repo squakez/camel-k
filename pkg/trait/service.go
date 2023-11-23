@@ -142,3 +142,28 @@ func getServiceFor(e *Environment) *corev1.Service {
 		},
 	}
 }
+
+func (t *serviceTrait) Reverse(e *Environment, traits *v1.Traits) error {
+	deploymentName := e.Integration.Annotations["camel.apache.org/imported-by"]
+	svcs, err := e.Client.CoreV1().Services(e.Integration.Namespace).List(e.Ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s", deploymentName),
+	},
+	)
+	if err != nil {
+		return err
+	}
+	if len(svcs.Items) > 0 {
+		svc := svcs.Items[0]
+		if traits.Service == nil {
+			traits.Service = &traitv1.ServiceTrait{}
+		}
+		auto := false
+		// does not make sense to look into source code as we don't have it available
+		traits.Service.Auto = &auto
+		st := traitv1.ServiceType(fmt.Sprintf("%v", svc.Spec.Type))
+		traits.Service.Type = &st
+		e.Resources.Add(&svc)
+	}
+
+	return nil
+}

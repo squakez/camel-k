@@ -380,6 +380,22 @@ func (t *containerTrait) Reverse(e *Environment, traits *v1.Traits) error {
 	traits.Container.Image = deploy.Spec.Template.Spec.Containers[0].Image
 	traits.Container.Name = deploy.Spec.Template.Spec.Containers[0].Name
 
+	svcs, err := e.Client.CoreV1().Services(e.Integration.Namespace).List(e.Ctx, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s", deploymentName),
+	},
+	)
+	if err != nil {
+		return err
+	}
+	if len(svcs.Items) > 0 {
+		svc := svcs.Items[0]
+		expose := true
+		traits.Container.Expose = &expose
+		traits.Container.ServicePort = int(svc.Spec.Ports[0].Port)
+		traits.Container.ServicePortName = svc.Spec.Ports[0].Name
+		traits.Container.Port = int(svc.Spec.Ports[0].TargetPort.IntVal)
+	}
+
 	return nil
 }
 
