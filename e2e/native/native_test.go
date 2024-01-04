@@ -23,6 +23,7 @@ limitations under the License.
 package native
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,9 +32,14 @@ import (
 
 	. "github.com/apache/camel-k/v2/e2e/support"
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 func TestNativeIntegrations(t *testing.T) {
+	v, _ := mem.VirtualMemory()
+	fmt.Println("************* Memory stats")
+	fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total, v.Free, v.UsedPercent)
+
 	WithNewTestNamespace(t, func(ns string) {
 		operatorID := "camel-k-quarkus-native"
 		Expect(KamelInstallWithID(operatorID, ns,
@@ -44,6 +50,10 @@ func TestNativeIntegrations(t *testing.T) {
 			"--maven-cli-option", "-Dquarkus.native.native-image-xmx=10g",
 		).Execute()).To(Succeed())
 		Eventually(PlatformPhase(ns), TestTimeoutMedium).Should(Equal(v1.IntegrationPlatformPhaseReady))
+
+		v, _ := mem.VirtualMemory()
+		fmt.Println("************* Memory stats")
+		fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total, v.Free, v.UsedPercent)
 
 		t.Run("unsupported integration source language", func(t *testing.T) {
 			name := RandomizedSuffixName("unsupported-js")
@@ -63,7 +73,6 @@ func TestNativeIntegrations(t *testing.T) {
 			name := RandomizedSuffixName("xml-native")
 			Expect(KamelRunWithID(operatorID, ns, "files/Xml.xml", "--name", name,
 				"-t", "quarkus.build-mode=native",
-				"-t", "builder.tasks-limit-memory=quarkus-native:6.5Gi",
 			).Execute()).To(Succeed())
 
 			Eventually(IntegrationPodPhase(ns, name), TestTimeoutVeryLong).Should(Equal(corev1.PodRunning))
@@ -85,7 +94,6 @@ func TestNativeIntegrations(t *testing.T) {
 			Expect(KamelRunWithID(operatorID, ns, "files/yaml.yaml", "--name", name,
 				"-t", "quarkus.build-mode=jvm",
 				"-t", "quarkus.build-mode=native",
-				"-t", "builder.tasks-limit-memory=quarkus-native:6.5Gi",
 			).Execute()).To(Succeed())
 
 			// Check that two Kits are created with distinct layout
@@ -137,7 +145,6 @@ func TestNativeIntegrations(t *testing.T) {
 				name := RandomizedSuffixName("yaml-native-2")
 				Expect(KamelRunWithID(operatorID, ns, "files/yaml2.yaml", "--name", name,
 					"-t", "quarkus.build-mode=native",
-					"-t", "builder.tasks-limit-memory=quarkus-native:6.5Gi",
 				).Execute()).To(Succeed())
 
 				// This one should run quickly as it suppose to reuse an IntegrationKit

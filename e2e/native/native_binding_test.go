@@ -23,14 +23,20 @@ limitations under the License.
 package native
 
 import (
+	"fmt"
 	. "github.com/apache/camel-k/v2/e2e/support"
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	. "github.com/onsi/gomega"
+	"github.com/shirou/gopsutil/v3/mem"
 	corev1 "k8s.io/api/core/v1"
 	"testing"
 )
 
 func TestNativeBinding(t *testing.T) {
+	v, _ := mem.VirtualMemory()
+	fmt.Println("************* Memory stats")
+	fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total, v.Free, v.UsedPercent)
+
 	WithNewTestNamespace(t, func(ns string) {
 		operatorID := "camel-k-native-binding"
 		Expect(KamelInstallWithIDAndKameletCatalog(operatorID, ns,

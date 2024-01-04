@@ -349,7 +349,7 @@ test-telemetry: do-build
 #
 test-quarkus-native: do-build
 	STAGING_RUNTIME_REPO="$(STAGING_RUNTIME_REPO)" \
-	go test -timeout 180m -v ./e2e/native -tags=integration $(TEST_QUARKUS_RUN) $(GOTESTFMT)
+	go test -timeout 180m -v ./e2e/native/native_test.go ./e2e/native/native_test_support.go -tags=integration $(TEST_QUARKUS_RUN) $(GOTESTFMT)
 
 #
 # Quarkus native test which require a higher memory resources

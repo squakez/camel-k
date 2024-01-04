@@ -33,7 +33,7 @@ jobs:
         ref-branch: [main, release-2.1.x, release-2.2.x]
 
     if: github.repository == 'apache/camel-k'
-    runs-on: macos-12
+    runs-on: macos-latest
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v3
