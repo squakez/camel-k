@@ -26,7 +26,7 @@ const (
 	Version = "2.3.0-SNAPSHOT"
 
 	// DefaultRuntimeVersion --
-	DefaultRuntimeVersion = "3.2.3"
+	DefaultRuntimeVersion = "3.2.32"
 
 	// BuildahVersion --
 	BuildahVersion = "1.30.0"
