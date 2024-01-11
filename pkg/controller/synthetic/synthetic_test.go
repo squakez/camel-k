@@ -33,7 +33,7 @@ import (
 )
 
 func TestNonManagedUnsupported(t *testing.T) {
-	pod := &corev1.Pod{
+	pod := &corev1.Pod{ 
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Pod",
