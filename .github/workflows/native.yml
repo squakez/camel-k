@@ -88,25 +88,27 @@ jobs:
         high-memory: 'true'
 
   lower-memory:
-    if: contains(github.event.pull_request.labels.*.name, 'trigger native test')
+    #if: contains(github.event.pull_request.labels.*.name, 'trigger native test')
     runs-on: macos-12
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-      with:
-        persist-credentials: false
-        submodules: recursive
-    - name: Convert input parameters to env vars
-      shell: bash
-      run: |
-        ./.github/workflows/manual-exec-process-inputs.sh \
-          -i "${{ github.event.inputs.pre-built-kamel-image }}" \
-          -p "${{ github.event.inputs.skip-problematic }}" \
-          -q "${{ github.event.inputs.log-level }}" \
-          -t "${{ github.event.inputs.test-filters }}"
-    - name: Native test
-      uses: ./.github/actions/e2e-native
-      with:
-        cluster-config-data: ${{ secrets.E2E_CLUSTER_CONFIG }}
-        cluster-kube-config-data: ${{ secrets.E2E_KUBE_CONFIG }}
+    # - name: Checkout code
+    #   uses: actions/checkout@v3
+    #   with:
+    #     persist-credentials: false
+    #     submodules: recursive
+    # - name: Convert input parameters to env vars
+    #   shell: bash
+    #   run: |
+    #     ./.github/workflows/manual-exec-process-inputs.sh \
+    #       -i "${{ github.event.inputs.pre-built-kamel-image }}" \
+    #       -p "${{ github.event.inputs.skip-problematic }}" \
+    #       -q "${{ github.event.inputs.log-level }}" \
+    #       -t "${{ github.event.inputs.test-filters }}"
+    # - name: Native test
+    #   uses: ./.github/actions/e2e-native
+    #   with:
+    #     cluster-config-data: ${{ secrets.E2E_CLUSTER_CONFIG }}
+    #     cluster-kube-config-data: ${{ secrets.E2E_KUBE_CONFIG }}
+    - name: Native docker check
+      uses: ./.github/actions/native-docker
