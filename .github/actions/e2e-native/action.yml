@@ -59,6 +59,16 @@ runs:
       image-namespace: ${{ steps.config-cluster.outputs.cluster-image-namespace }}
       global-operator-namespace: ${{ steps.config-cluster.outputs.cluster-global-operator-namespace }}
 
+  - id: amend-docker-buildx
+    name: amend dockerx
+    shell: bash
+    run: |
+      brew install docker docker-buildx
+      docker
+      mkdir -p ~/.docker/cli-plugins
+      ln -sfn /usr/local/opt/docker-buildx/bin/docker-buildx ~/.docker/cli-plugins/docker-buildx
+      ls -larth $HOME/.docker/cli-plugins/
+
   - id: build-kamel
     name: Build Kamel
     uses: ./.github/actions/kamel-build
