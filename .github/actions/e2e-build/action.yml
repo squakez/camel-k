@@ -18,6 +18,11 @@
 name: e2e-build
 description: 'End-to-End tests for build use-cases'
 
+inputs:
+  artifact-name:
+    description: 'The name of the artifact to store coverage results'
+    required: true
+
 runs:
   using: "composite"
 
@@ -32,15 +37,15 @@ runs:
     run: |
       COVERAGE_OPTS="-covermode=count -coverprofile=coverage.out" make build
 
-  - name: Save coverage PR value
+  - name: Save coverage value
     shell: bash
     run: |
-      mkdir -p ./pr
+      mkdir -p ./${{ inputs.artifact-name }}
       go tool cover -func=coverage.out -o=coverage.out
-      grep -o -P '(?<=\(statements\))(.+)(?=%)' coverage.out | xargs > ./pr/coverage
-      echo ${{ github.event.number }} > ./pr/id
+      grep -o -P '(?<=\(statements\))(.+)(?=%)' coverage.out | xargs > ./${{ inputs.artifact-name }}/coverage
+      echo ${{ github.event.number }} > ./${{ inputs.artifact-name }}/id
 
   - uses: actions/upload-artifact@v4
     with:
-      name: pr
-      path: pr/
+      name: ${{ inputs.artifact-name }}
+      path: ${{ inputs.artifact-name }}/
