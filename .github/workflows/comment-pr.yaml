@@ -5,7 +5,7 @@ env:
 
 on:
   workflow_run:
-    workflows: ["build"]
+    workflows: ["build","build-base"]
     types:
       - completed
 
@@ -16,14 +16,14 @@ jobs:
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     steps:
-      - name: 'Download coverage artifact'
+      - name: 'Download pr artifact'
         uses: actions/github-script@v7
         with:
           script: |
-            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+            var artifacts = await github.rest.actions.artifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
-               run_id: ${{github.event.workflow_run.id }},
+               // run_id: ${{github.event.workflow_run.id }},
             });
             var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "pr"
@@ -36,7 +36,33 @@ jobs:
             });
             var fs = require('fs');
             fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
-      - run: unzip pr.zip
+      - run: |
+          mkdir -p pr
+          unzip pr.zip -d pr
+
+      - name: 'Download base artifact'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            var artifacts = await github.rest.actions.artifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               // run_id: ${{github.event.workflow_run.id }},
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "base"
+            })[0];
+            var download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/base.zip', Buffer.from(download.data));
+      - run: |
+          mkdir -p base
+          unzip base.zip -d base
 
       - name: 'Comment on PR'
         uses: actions/github-script@v7
@@ -44,11 +70,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             var fs = require('fs');
-            const coverage = Number(fs.readFileSync('./coverage'));
-            const issue_number = Number(fs.readFileSync('./id'));
-            const main_coverage_result = await github.request('https://raw.githubusercontent.com/' + context.repo.owner + '/' + context.repo.repo + '/main/coverage')
-            const main_cov_num = Number(main_coverage_result.data)
-            diff = Math.round((coverage - main_cov_num + Number.EPSILON) * 100) / 100
+            const issue_number = Number(fs.readFileSync('./pr/id'));
+            const coverage = Number(fs.readFileSync('./pr/coverage'));
+            const coverage_old = Number(fs.readFileSync('./base/coverage'));
+            diff = Math.round((coverage - coverage_old + Number.EPSILON) * 100) / 100
 
             if(diff > 0){
               await github.rest.issues.createComment({

@@ -64,6 +64,11 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
+    - name: PR number
+      shell: bash
+      run: |
+        echo "WF: ${{ github.workflow }}"
+        echo "WF: ${{ github.event.pull_request.number }}"
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -71,3 +76,5 @@ jobs:
         submodules: recursive
     - name: Execute Build (make)
       uses: ./.github/actions/e2e-build
+      with:
+        artifact-name: pr

@@ -15,37 +15,44 @@
 # limitations under the License.
 # ---------------------------------------------------------------------------
 
-name: e2e-build
-description: 'End-to-End tests for build use-cases'
+name: build-base
 
-inputs:
-  artifact-name:
-    description: 'The name of the artifact to store coverage results'
-    required: true
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-runs:
-  using: "composite"
+on:
+  pull_request_target:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - 'java/**'
+      - 'proposals/**'
+      - '**.adoc'
+      - '**.md'
+      - 'KEYS'
+      - 'LICENSE'
+      - 'NOTICE'
 
-  steps:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
-  - id: prepare-env
-    name: Prepare Test Environment
-    uses: ./.github/actions/kamel-prepare-env
-
-  - name: Test
-    shell: bash
-    run: |
-      COVERAGE_OPTS="-covermode=count -coverprofile=coverage.out" make build
-
-  - name: Save coverage value
-    shell: bash
-    run: |
-      mkdir -p ./${{ inputs.artifact-name }}
-      go tool cover -func=coverage.out -o=coverage.out
-      grep -o -P '(?<=\(statements\))(.+)(?=%)' coverage.out | xargs > ./${{ inputs.artifact-name }}/coverage
-      echo ${{ github.event.number }} > ./${{ inputs.artifact-name }}/id
-
-  - uses: actions/upload-artifact@v4
-    with:
-      name: ${{ inputs.artifact-name }}
-      path: ${{ inputs.artifact-name }}/
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: PR number
+      shell: bash
+      run: |
+        echo "WF: ${{ github.workflow }}"
+        echo "WF: ${{ github.event.pull_request.number }}"
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        submodules: recursive
+    - name: Execute Build (make)
+      uses: ./.github/actions/e2e-build
+      with:
+        artifact-name: base
