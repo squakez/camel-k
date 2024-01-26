@@ -15,16 +15,15 @@
 # limitations under the License.
 # ---------------------------------------------------------------------------
 
-name: build
+name: build-base
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - main
-      - "release-*"
     paths-ignore:
       - 'docs/**'
       - 'java/**'
@@ -34,21 +33,6 @@ on:
       - 'KEYS'
       - 'LICENSE'
       - 'NOTICE'
-  push:
-    branches:
-      - main
-      - "release-*"
-    paths-ignore:
-      - 'docs/**'
-      - 'java/**'
-      - 'proposals/**'
-      - '**.md'
-      - '**.adoc'
-      - 'KEYS'
-      - 'LICENSE'
-      - 'NOTICE'
-  workflow_dispatch:
-    inputs:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -56,13 +40,7 @@ concurrency:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        # TODO: test an all the supported OS
-        # [ubuntu-latest, macos-latest, windows-latest]
-        os: [ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
     - name: PR number
       shell: bash
@@ -77,4 +55,4 @@ jobs:
     - name: Execute Build (make)
       uses: ./.github/actions/e2e-build
       with:
-        artifact-name: pr
+        artifact-name: base
