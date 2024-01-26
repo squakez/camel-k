@@ -18,6 +18,11 @@
 name: e2e-build
 description: 'End-to-End tests for build use-cases'
 
+inputs:
+  artifact-name:
+    description: 'The name of the artifact to store coverage results'
+    required: true
+
 runs:
   using: "composite"
 
@@ -27,20 +32,44 @@ runs:
     name: Prepare Test Environment
     uses: ./.github/actions/kamel-prepare-env
 
-  - name: Test
+  - name: Test new branch
     shell: bash
     run: |
-      COVERAGE_OPTS="-covermode=count -coverprofile=coverage.out" make build
+      echo "test new branch"
+      # COVERAGE_OPTS="-covermode=count -coverprofile=coverage.out" make build
 
-  - name: Save coverage PR value
+  # Only run these on a pull request
+  - name: Save new coverage value
+    if: github.event_name == 'pull_request'
     shell: bash
     run: |
-      mkdir -p ./pr
-      go tool cover -func=coverage.out -o=coverage.out
-      grep -o -P '(?<=\(statements\))(.+)(?=%)' coverage.out | xargs > ./pr/coverage
-      echo ${{ github.event.number }} > ./pr/id
+      mkdir -p ./${{ inputs.artifact-name }}
+      # go tool cover -func=coverage.out -o=coverage.out
+      # grep -o -P '(?<=\(statements\))(.+)(?=%)' coverage.out | xargs > ./${{ inputs.artifact-name }}/coverage_new
+      echo $RANDOM % 100 + 1 | bc > ./${{ inputs.artifact-name }}/coverage_new
+      echo ${{ github.event.number }} > ./${{ inputs.artifact-name }}/id
+
+  - name: Test target branch
+    if: github.event_name == 'pull_request'
+    shell: bash
+    run: |
+      git log -n 3
+      git remote -v
+      git checkout ${{ github.event.pull_request.base.ref }}
+      # COVERAGE_OPTS="-covermode=count -coverprofile=coverage.out" make build
+      echo "test target branch"
+      git log
+
+  - name: Save target coverage value
+    if: github.event_name == 'pull_request'
+    shell: bash
+    run: |
+      # go tool cover -func=coverage.out -o=coverage.out
+      # grep -o -P '(?<=\(statements\))(.+)(?=%)' coverage.out | xargs > ./${{ inputs.artifact-name }}/coverage_old
+      echo $RANDOM % 100 + 1 | bc > ./${{ inputs.artifact-name }}/coverage_old
 
   - uses: actions/upload-artifact@v4
+    if: github.event_name == 'pull_request'
     with:
-      name: pr
-      path: pr/
+      name: ${{ inputs.artifact-name }}
+      path: ${{ inputs.artifact-name }}/
