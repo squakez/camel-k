@@ -314,10 +314,25 @@ func propagateKitTraits(e *Environment) v1.IntegrationKitTraits {
 }
 
 func propagate(traitSource string, traits v1.Traits, kitTraits *v1.IntegrationKitTraits, e *Environment) {
+	t := e.Catalog.GetTrait(builderTraitID)
+	builderTrait, ok := t.(*builderTrait)
+	if !ok {
+		log.Errorf(fmt.Errorf("couldn't cast builder trait"), "Unable to propagate traits from %s to the integration kit", traitSource)
+	}
+	t = e.Catalog.GetTrait(camelTraitID)
+	camelTrait, ok := t.(*camelTrait)
+	if !ok {
+		log.Errorf(fmt.Errorf("couldn't cast camel trait"), "Unable to propagate traits from %s to the integration kit", traitSource)
+	}
+	t = e.Catalog.GetTrait(quarkusTraitID)
+	quarkusTrait, ok := t.(*quarkusTrait)
+	if !ok {
+		log.Errorf(fmt.Errorf("couldn't cast quarkus trait"), "Unable to propagate traits from %s to the integration kit", traitSource)
+	}
 	ikt := v1.IntegrationKitTraits{
-		Builder:  traits.Builder.DeepCopy(),
-		Camel:    traits.Camel.DeepCopy(),
-		Quarkus:  traits.Quarkus.DeepCopy(),
+		Builder:  builderTrait.DeepCopy(),
+		Camel:    camelTrait.DeepCopy(),
+		Quarkus:  quarkusTrait.DeepCopy(),
 		Registry: traits.Registry.DeepCopy(),
 	}
 

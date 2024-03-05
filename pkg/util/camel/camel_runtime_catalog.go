@@ -26,6 +26,23 @@ import (
 // NewRuntimeCatalog creates a runtime catalog with the given catalog.
 func NewRuntimeCatalog(cat v1.CamelCatalog) *RuntimeCatalog {
 	catalog := RuntimeCatalog{}
+
+	if cat.Spec.Runtime.Capabilities != nil {
+		// TODO manage Master from the catalog
+		masterCapability := cat.Spec.Runtime.Capabilities["master"]
+		masterCapability.Dependencies = []v1.MavenArtifact{
+			{
+				GroupID:    "org.apache.camel.quarkus",
+				ArtifactID: "camel-quarkus-master",
+			},
+			{
+				GroupID:    "org.apache.camel.quarkus",
+				ArtifactID: "camel-quarkus-kubernetes",
+			},
+		}
+		cat.Spec.Runtime.Capabilities["master"] = masterCapability
+	}
+
 	catalog.CamelCatalogSpec = cat.Spec
 	catalog.CamelCatalogStatus = cat.Status
 	catalog.artifactByScheme = make(map[string]string)

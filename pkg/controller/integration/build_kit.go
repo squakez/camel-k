@@ -174,7 +174,6 @@ kits:
 	}
 
 	if integrationKit != nil {
-
 		action.L.Debug("Setting integration kit for integration", "integration", integration.Name, "namespace", integration.Namespace, "integration kit", integrationKit.Name)
 		// Set the kit name so the next handle loop, will fall through the
 		// same path as integration with a user defined kit

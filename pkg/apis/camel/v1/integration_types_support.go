@@ -283,6 +283,16 @@ func (in *Integration) IsSynthetic() bool {
 	return in.Annotations[IntegrationSyntheticLabel] == "true"
 }
 
+// HasCapability returns true if the Integration has the capability.
+func (in *IntegrationStatus) HasCapability(cap string) bool {
+	for _, c := range in.Capabilities {
+		if c == cap {
+			return true
+		}
+	}
+	return false
+}
+
 // GetCondition returns the condition with the provided type.
 func (in *IntegrationStatus) GetCondition(condType IntegrationConditionType) *IntegrationCondition {
 	for i := range in.Conditions {

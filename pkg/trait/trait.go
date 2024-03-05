@@ -87,12 +87,38 @@ func Apply(ctx context.Context, c client.Client, integration *v1.Integration, ki
 		ilog.Debug("Applied traits to Integration", "integration", integration.Name, "namespace", integration.Namespace)
 		// The spec.traits may have been altered by other traits execution. We can save here the status for future
 		// reference
-		integration.Status.Traits = integration.Spec.Traits
+		//integration.Status.Traits = integration.Spec.Traits
+		for _, t := range environment.ExecutedTraits {
+			fmt.Println("************ Executed IT trait...", t)
+			if t.ID() == "builder" {
+				builderTrait, _ := t.(*builderTrait)
+				integration.Status.Traits.Builder = &builderTrait.BuilderTrait
+				fmt.Println(integration.Status.Traits.Builder)
+			}
+			if t.ID() == "camel" {
+				camelTrait, _ := t.(*camelTrait)
+				integration.Status.Traits.Camel = &camelTrait.CamelTrait
+				fmt.Println(integration.Status.Traits.Camel)
+			}
+		}
 	case kit != nil:
 		ilog.Debug("Applied traits to Integration kit", "integration kit", kit.Name, "namespace", kit.Namespace)
 		// The spec.traits may have been altered by other traits execution We can save here the status for future
 		// reference
-		kit.Status.Traits = kit.Spec.Traits
+		//kit.Status.Traits = kit.Spec.Traits
+		for _, t := range environment.ExecutedTraits {
+			fmt.Println("************ Executed Kit trait...", t)
+			if t.ID() == "builder" {
+				builderTrait, _ := t.(*builderTrait)
+				kit.Status.Traits.Builder = &builderTrait.BuilderTrait
+				fmt.Println(kit.Status.Traits.Builder)
+			}
+			if t.ID() == "camel" {
+				camelTrait, _ := t.(*camelTrait)
+				kit.Status.Traits.Camel = &camelTrait.CamelTrait
+				fmt.Println(kit.Status.Traits.Camel)
+			}
+		}
 	default:
 		ilog.Debug("Applied traits")
 	}

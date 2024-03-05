@@ -62,6 +62,13 @@ func (t *builderTrait) InfluencesBuild(this, prev map[string]interface{}) bool {
 }
 
 func (t *builderTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
+	if e.Integration != nil && e.Integration.Status.HasCapability("master") {
+		// this trait requires a few build properties that we need to configure in the builder trait
+		t.Properties = append(t.Properties, "quarkus.camel.cluster.kubernetes.enabled=true")
+		fmt.Println("********** Configure", t.Properties)
+		return true, nil, nil
+	}
+
 	if e.IntegrationKit == nil {
 		return false, nil, nil
 	}
@@ -160,127 +167,134 @@ func newOrAppend(condition *TraitCondition, message string) *TraitCondition {
 }
 
 func (t *builderTrait) Apply(e *Environment) error {
-	// local pipeline tasks
-	var pipelineTasks []v1.Task
+	if e.IntegrationKit != nil {
+		// local pipeline tasks
+		var pipelineTasks []v1.Task
 
-	// task configuration resources
-	tasksConf, err := t.parseTasksConf()
-	if err != nil {
-		return err
-	}
-
-	imageName := getImageName(e)
-	// Building task
-	builderTask, err := t.builderTask(e, taskConfOrDefault(tasksConf, "builder"))
-	if err != nil {
-		if err := failIntegrationKit(
-			e,
-			"IntegrationKitPropertiesFormatValid",
-			corev1.ConditionFalse,
-			"IntegrationKitPropertiesFormatValid",
-			fmt.Sprintf("One or more properties where not formatted as expected: %s", err.Error()),
-		); err != nil {
+		// task configuration resources
+		tasksConf, err := t.parseTasksConf()
+		if err != nil {
 			return err
 		}
-		return nil
-	}
-	builderTask.Configuration.NodeSelector = t.NodeSelector
-	builderTask.Configuration.Annotations = t.Annotations
-	pipelineTasks = append(pipelineTasks, v1.Task{Builder: builderTask})
 
-	// Custom tasks
-	if t.Tasks != nil {
-		realBuildStrategy := builderTask.Configuration.Strategy
-		if realBuildStrategy == "" {
-			realBuildStrategy = e.Platform.Status.Build.BuildConfiguration.Strategy
-		}
-		if len(t.Tasks) > 0 && realBuildStrategy != v1.BuildStrategyPod {
+		imageName := getImageName(e)
+		// Building task
+		builderTask, err := t.builderTask(e, taskConfOrDefault(tasksConf, "builder"))
+		if err != nil {
 			if err := failIntegrationKit(
 				e,
-				"IntegrationKitTasksValid",
+				"IntegrationKitPropertiesFormatValid",
 				corev1.ConditionFalse,
-				"IntegrationKitTasksValid",
-				fmt.Sprintf("Pipeline tasks unavailable when using `%s` platform build strategy: use `%s` instead.",
-					realBuildStrategy,
-					v1.BuildStrategyPod),
+				"IntegrationKitPropertiesFormatValid",
+				fmt.Sprintf("One or more properties where not formatted as expected: %s", err.Error()),
 			); err != nil {
 				return err
 			}
 			return nil
 		}
+		builderTask.Configuration.NodeSelector = t.NodeSelector
+		builderTask.Configuration.Annotations = t.Annotations
+		pipelineTasks = append(pipelineTasks, v1.Task{Builder: builderTask})
 
-		customTasks, err := t.customTasks(tasksConf, imageName)
-		if err != nil {
-			return err
-		}
+		// Custom tasks
+		if t.Tasks != nil {
+			realBuildStrategy := builderTask.Configuration.Strategy
+			if realBuildStrategy == "" {
+				realBuildStrategy = e.Platform.Status.Build.BuildConfiguration.Strategy
+			}
+			if len(t.Tasks) > 0 && realBuildStrategy != v1.BuildStrategyPod {
+				if err := failIntegrationKit(
+					e,
+					"IntegrationKitTasksValid",
+					corev1.ConditionFalse,
+					"IntegrationKitTasksValid",
+					fmt.Sprintf("Pipeline tasks unavailable when using `%s` platform build strategy: use `%s` instead.",
+						realBuildStrategy,
+						v1.BuildStrategyPod),
+				); err != nil {
+					return err
+				}
+				return nil
+			}
 
-		pipelineTasks = append(pipelineTasks, customTasks...)
-	}
-
-	// Packaging task
-	// It's the same builder configuration, but with different steps and conf
-	packageTask := builderTask.DeepCopy()
-	packageTask.Name = "package"
-	packageTask.Configuration = *taskConfOrDefault(tasksConf, "package")
-	packageTask.Steps = make([]string, 0)
-	pipelineTasks = append(pipelineTasks, v1.Task{Package: packageTask})
-
-	// Publishing task
-	switch e.Platform.Status.Build.PublishStrategy {
-	case v1.IntegrationPlatformBuildPublishStrategySpectrum:
-		pipelineTasks = append(pipelineTasks, v1.Task{Spectrum: &v1.SpectrumTask{
-			BaseTask: v1.BaseTask{
-				Name:          "spectrum",
-				Configuration: *taskConfOrDefault(tasksConf, "spectrum"),
-			},
-			PublishTask: v1.PublishTask{
-				BaseImage: t.getBaseImage(e),
-				Image:     imageName,
-				Registry:  e.Platform.Status.Build.Registry,
-			},
-		}})
-
-	case v1.IntegrationPlatformBuildPublishStrategyJib:
-		pipelineTasks = append(pipelineTasks, v1.Task{Jib: &v1.JibTask{
-			BaseTask: v1.BaseTask{
-				Name:          "jib",
-				Configuration: *taskConfOrDefault(tasksConf, "jib"),
-			},
-			PublishTask: v1.PublishTask{
-				BaseImage: t.getBaseImage(e),
-				Image:     imageName,
-				Registry:  e.Platform.Status.Build.Registry,
-			},
-		}})
-
-	case v1.IntegrationPlatformBuildPublishStrategyS2I:
-		pipelineTasks = append(pipelineTasks, v1.Task{S2i: &v1.S2iTask{
-			BaseTask: v1.BaseTask{
-				Name:          "s2i",
-				Configuration: *taskConfOrDefault(tasksConf, "s2i"),
-			},
-			Tag: e.IntegrationKit.ResourceVersion,
-		}})
-	}
-
-	// filter only those tasks required by the user
-	if t.TasksFilter != "" {
-		flt := strings.Split(t.TasksFilter, ",")
-		if pipelineTasks, err = filter(pipelineTasks, flt); err != nil {
-			if err := failIntegrationKit(
-				e,
-				"IntegrationKitTasksValid",
-				corev1.ConditionFalse,
-				"IntegrationKitTasksValid",
-				err.Error(),
-			); err != nil {
+			customTasks, err := t.customTasks(tasksConf, imageName)
+			if err != nil {
 				return err
 			}
-			return err
+
+			pipelineTasks = append(pipelineTasks, customTasks...)
 		}
+
+		// Packaging task
+		// It's the same builder configuration, but with different steps and conf
+		packageTask := builderTask.DeepCopy()
+		packageTask.Name = "package"
+		packageTask.Configuration = *taskConfOrDefault(tasksConf, "package")
+		packageTask.Steps = make([]string, 0)
+		pipelineTasks = append(pipelineTasks, v1.Task{Package: packageTask})
+
+		// Publishing task
+		switch e.Platform.Status.Build.PublishStrategy {
+		case v1.IntegrationPlatformBuildPublishStrategySpectrum:
+			pipelineTasks = append(pipelineTasks, v1.Task{Spectrum: &v1.SpectrumTask{
+				BaseTask: v1.BaseTask{
+					Name:          "spectrum",
+					Configuration: *taskConfOrDefault(tasksConf, "spectrum"),
+				},
+				PublishTask: v1.PublishTask{
+					BaseImage: t.getBaseImage(e),
+					Image:     imageName,
+					Registry:  e.Platform.Status.Build.Registry,
+				},
+			}})
+
+		case v1.IntegrationPlatformBuildPublishStrategyJib:
+			pipelineTasks = append(pipelineTasks, v1.Task{Jib: &v1.JibTask{
+				BaseTask: v1.BaseTask{
+					Name:          "jib",
+					Configuration: *taskConfOrDefault(tasksConf, "jib"),
+				},
+				PublishTask: v1.PublishTask{
+					BaseImage: t.getBaseImage(e),
+					Image:     imageName,
+					Registry:  e.Platform.Status.Build.Registry,
+				},
+			}})
+
+		case v1.IntegrationPlatformBuildPublishStrategyS2I:
+			pipelineTasks = append(pipelineTasks, v1.Task{S2i: &v1.S2iTask{
+				BaseTask: v1.BaseTask{
+					Name:          "s2i",
+					Configuration: *taskConfOrDefault(tasksConf, "s2i"),
+				},
+				Tag: e.IntegrationKit.ResourceVersion,
+			}})
+		}
+
+		// filter only those tasks required by the user
+		if t.TasksFilter != "" {
+			flt := strings.Split(t.TasksFilter, ",")
+			if pipelineTasks, err = filter(pipelineTasks, flt); err != nil {
+				if err := failIntegrationKit(
+					e,
+					"IntegrationKitTasksValid",
+					corev1.ConditionFalse,
+					"IntegrationKitTasksValid",
+					err.Error(),
+				); err != nil {
+					return err
+				}
+				return err
+			}
+		}
+		// add local pipeline tasks to env pipeline
+		e.Pipeline = append(e.Pipeline, pipelineTasks...)
+		return nil
 	}
-	// add local pipeline tasks to env pipeline
-	e.Pipeline = append(e.Pipeline, pipelineTasks...)
+
+	if e.Integration != nil {
+		fmt.Println("********** Apply", t.Properties)
+	}
 	return nil
 }
 
