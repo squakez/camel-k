@@ -114,8 +114,6 @@ func (t *quarkusTrait) InfluencesBuild(this, prev map[string]interface{}) bool {
 	return true
 }
 
-var _ ComparableTrait = &quarkusTrait{}
-
 func (t *quarkusTrait) Matches(trait Trait) bool {
 	qt, ok := trait.(*quarkusTrait)
 	if !ok {
@@ -140,12 +138,20 @@ func (t *quarkusTrait) Matches(trait Trait) bool {
 }
 
 func (t *quarkusTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
-	condition := t.adaptDeprecatedFields()
+	if e.IntegrationInPhase(v1.IntegrationPhaseBuildingKit) ||
+		e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) ||
+		e.IntegrationKitInPhase(v1.IntegrationKitPhaseReady) && e.IntegrationInRunningPhases() {
+		condition := t.adaptDeprecatedFields()
 
-	return e.IntegrationInPhase(v1.IntegrationPhaseBuildingKit) ||
-			e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) ||
-			e.IntegrationKitInPhase(v1.IntegrationKitPhaseReady) && e.IntegrationInRunningPhases(),
-		condition, nil
+		return true, condition, nil
+	}
+
+	if e.Integration != nil {
+		// Required to propagate to kits trait later on
+		return true, nil, nil
+	}
+
+	return false, nil, nil
 }
 
 func (t *quarkusTrait) adaptDeprecatedFields() *TraitCondition {
@@ -168,9 +174,14 @@ func (t *quarkusTrait) adaptDeprecatedFields() *TraitCondition {
 }
 
 func (t *quarkusTrait) Apply(e *Environment) error {
+	if !(e.IntegrationInPhase(v1.IntegrationPhaseBuildingKit) ||
+		e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) ||
+		e.IntegrationKitInPhase(v1.IntegrationKitPhaseReady) && e.IntegrationInRunningPhases()) {
+		return nil
+	}
+
 	if e.IntegrationInPhase(v1.IntegrationPhaseBuildingKit) {
 		t.applyWhileBuildingKit(e)
-
 		return nil
 	}
 
@@ -189,24 +200,30 @@ func (t *quarkusTrait) Apply(e *Environment) error {
 	return nil
 }
 
-func (t *quarkusTrait) applyWhileBuildingKit(e *Environment) {
+func (t *quarkusTrait) applyWhileBuildingKit(e *Environment) error {
 	if t.containsMode(traitv1.NativeQuarkusMode) {
 		// Native compilation is only supported for a subset of languages,
 		// so let's check for compatibility, and fail-fast the Integration,
 		// to save compute resources and user time.
 		if !t.validateNativeSupport(e) {
 			// Let the calling controller handle the Integration update
-			return
+			return nil
 		}
 	}
 
 	switch len(t.Modes) {
 	case 0:
 		// Default behavior
-		kit := t.newIntegrationKit(e, fastJarPackageType)
+		kit, err := t.newIntegrationKit(e, fastJarPackageType)
+		if err != nil {
+			return err
+		}
 		e.IntegrationKits = append(e.IntegrationKits, *kit)
 	case 1:
-		kit := t.newIntegrationKit(e, packageType(t.Modes[0]))
+		kit, err := t.newIntegrationKit(e, packageType(t.Modes[0]))
+		if err != nil {
+			return err
+		}
 		e.IntegrationKits = append(e.IntegrationKits, *kit)
 	default:
 		// execute jvm mode before native mode
@@ -214,7 +231,10 @@ func (t *quarkusTrait) applyWhileBuildingKit(e *Environment) {
 			return t.Modes[i] != traitv1.NativeQuarkusMode
 		})
 		for _, md := range t.Modes {
-			kit := t.newIntegrationKit(e, packageType(md))
+			kit, err := t.newIntegrationKit(e, packageType(md))
+			if err != nil {
+				return err
+			}
 			if kit.Spec.Traits.Quarkus == nil {
 				kit.Spec.Traits.Quarkus = &traitv1.QuarkusTrait{}
 			}
@@ -222,6 +242,8 @@ func (t *quarkusTrait) applyWhileBuildingKit(e *Environment) {
 			e.IntegrationKits = append(e.IntegrationKits, *kit)
 		}
 	}
+
+	return nil
 }
 
 func (t *quarkusTrait) validateNativeSupport(e *Environment) bool {
@@ -242,7 +264,7 @@ func (t *quarkusTrait) validateNativeSupport(e *Environment) bool {
 	return true
 }
 
-func (t *quarkusTrait) newIntegrationKit(e *Environment, packageType quarkusPackageType) *v1.IntegrationKit {
+func (t *quarkusTrait) newIntegrationKit(e *Environment, packageType quarkusPackageType) (*v1.IntegrationKit, error) {
 	integration := e.Integration
 	kit := v1.NewIntegrationKit(integration.GetIntegrationKitNamespace(e.Platform), fmt.Sprintf("kit-%s", xid.New()))
 
@@ -285,35 +307,41 @@ func (t *quarkusTrait) newIntegrationKit(e *Environment, packageType quarkusPack
 		kit.SetOperatorID(operatorID)
 	}
 
+	kitTraits, err := t.propagateKitTraits(e)
+	if err != nil {
+		return kit, err
+	}
+
 	kit.Spec = v1.IntegrationKitSpec{
 		Dependencies: e.Integration.Status.Dependencies,
 		Repositories: e.Integration.Spec.Repositories,
-		Traits:       propagateKitTraits(e),
+		Traits:       kitTraits,
 	}
 
 	if packageType == nativeSourcesPackageType {
 		kit.Spec.Sources = propagateSourcesRequiredAtBuildTime(e)
 	}
-	return kit
+	return kit, nil
 }
 
-func propagateKitTraits(e *Environment) v1.IntegrationKitTraits {
+func (t *quarkusTrait) propagateKitTraits(e *Environment) (v1.IntegrationKitTraits, error) {
 	kitTraits := v1.IntegrationKitTraits{}
-
 	if e.Platform != nil {
-		propagate(fmt.Sprintf("platform %q", e.Platform.Name), e.Platform.Status.Traits, &kitTraits, e)
+		t.propagate(v1.IntegrationPlatformKind, e.Platform.Name, e.Platform.Status.Traits, &kitTraits, e)
 	}
-
 	if e.IntegrationProfile != nil {
-		propagate(fmt.Sprintf("integration profile %q", e.IntegrationProfile.Name), e.IntegrationProfile.Status.Traits, &kitTraits, e)
+		t.propagate(v1.IntegrationProfileKind, e.IntegrationProfile.Name, e.IntegrationProfile.Status.Traits, &kitTraits, e)
 	}
+	itExecutedTraits, err := e.executedIntegrationTraits()
+	if err != nil {
+		return kitTraits, err
+	}
+	t.propagate(v1.IntegrationKind, e.Integration.Name, *itExecutedTraits, &kitTraits, e)
 
-	propagate(fmt.Sprintf("integration %q", e.Integration.Name), e.Integration.Spec.Traits, &kitTraits, e)
-
-	return kitTraits
+	return kitTraits, nil
 }
 
-func propagate(traitSource string, traits v1.Traits, kitTraits *v1.IntegrationKitTraits, e *Environment) {
+func (t *quarkusTrait) propagate(resKind, resName string, traits v1.Traits, kitTraits *v1.IntegrationKitTraits, e *Environment) error {
 	ikt := v1.IntegrationKitTraits{
 		Builder: traits.Builder.DeepCopy(),
 		Camel:   traits.Camel.DeepCopy(),
@@ -321,11 +349,14 @@ func propagate(traitSource string, traits v1.Traits, kitTraits *v1.IntegrationKi
 		// nolint: staticcheck
 		Registry: traits.Registry.DeepCopy(),
 	}
-
-	if err := kitTraits.Merge(ikt); err != nil {
-		log.Errorf(err, "Unable to propagate traits from %s to the integration kit", traitSource)
+	if resKind == v1.IntegrationKind {
+		// This is required in the Integration trait execution as the Quarkus trait we want to propagate
+		// is the one actually running
+		ikt.Quarkus = t.DeepCopy()
 	}
-
+	if err := kitTraits.Merge(ikt); err != nil {
+		return fmt.Errorf("unable to propagate traits from %s/%s to the integration kit: %w", resKind, resName, err)
+	}
 	// propagate addons that influence kits too
 	if len(traits.Addons) > 0 {
 		if kitTraits.Addons == nil {
@@ -338,6 +369,7 @@ func propagate(traitSource string, traits v1.Traits, kitTraits *v1.IntegrationKi
 			}
 		}
 	}
+	return nil
 }
 
 func (t *quarkusTrait) applyWhenBuildSubmitted(e *Environment) error {

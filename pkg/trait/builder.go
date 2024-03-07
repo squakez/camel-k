@@ -18,8 +18,10 @@ limitations under the License.
 package trait
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,54 +58,76 @@ func (t *builderTrait) InfluencesKit() bool {
 	return true
 }
 
-// InfluencesBuild overrides base class method.
+// InfluencesBuild only when the certain configuration has changed.
 func (t *builderTrait) InfluencesBuild(this, prev map[string]interface{}) bool {
-	return true
+	var thisTraitConfig, prevTraitConfig builderTrait
+	data1, _ := json.Marshal(this)
+	data2, _ := json.Marshal(prev)
+	json.Unmarshal(data1, &thisTraitConfig)
+	json.Unmarshal(data2, &prevTraitConfig)
+
+	return thisTraitConfig.BaseImage != prevTraitConfig.BaseImage || !buildPropertyEquals(thisTraitConfig, prevTraitConfig)
+}
+
+func buildPropertyEquals(thisTraitConfig, prevTraitConfig builderTrait) bool {
+	if len(thisTraitConfig.Properties) != len(prevTraitConfig.Properties) {
+		return false
+	}
+	// Required to ease comparison
+	slices.Sort(thisTraitConfig.Properties)
+	slices.Sort(prevTraitConfig.Properties)
+	// Only baseImage and properties configuration should influence build
+	return slices.Equal(thisTraitConfig.Properties, prevTraitConfig.Properties)
 }
 
 func (t *builderTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
-	if e.IntegrationKit == nil {
-		return false, nil, nil
-	}
+	if e.IntegrationKit != nil {
+		condition := t.adaptDeprecatedFields()
 
-	condition := t.adaptDeprecatedFields()
-
-	if e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) {
-		if trait := e.Catalog.GetTrait(quarkusTraitID); trait != nil {
-			quarkus, ok := trait.(*quarkusTrait)
-			isNativeIntegration := quarkus.isNativeIntegration(e)
-			isNativeKit, err := quarkus.isNativeKit(e)
-			if err != nil {
-				return false, condition, err
-			}
-			if ok && (isNativeIntegration || isNativeKit) {
-				// TODO expect maven repository in local repo (need to change builder pod accordingly!)
-				command := builder.QuarkusRuntimeSupport(e.CamelCatalog.GetCamelQuarkusVersion()).BuildCommands()
-				nativeBuilderImage := quarkus.NativeBuilderImage
-				if nativeBuilderImage == "" {
-					// default from the catalog
-					nativeBuilderImage = e.CamelCatalog.GetQuarkusToolingImage()
+		if e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) {
+			if trait := e.Catalog.GetTrait(quarkusTraitID); trait != nil {
+				quarkus, ok := trait.(*quarkusTrait)
+				isNativeIntegration := quarkus.isNativeIntegration(e)
+				isNativeKit, err := quarkus.isNativeKit(e)
+				if err != nil {
+					return false, condition, err
 				}
-				// it should be performed as the last custom task
-				t.Tasks = append(t.Tasks, fmt.Sprintf(`quarkus-native;%s;/bin/bash -c "%s"`, nativeBuilderImage, command))
-				// Force the build to run in a separate Pod and strictly sequential
-				m := "This is a Quarkus native build: setting build configuration with build Pod strategy and native container sensible resources (if not specified by the user). Make sure your cluster can handle it."
-				t.L.Info(m)
-				condition = newOrAppend(condition, m)
-				t.Strategy = string(v1.BuildStrategyPod)
-				t.OrderStrategy = string(v1.BuildOrderStrategySequential)
-				if !existsTaskRequest(t.TasksRequestCPU, "quarkus-native") {
-					t.TasksRequestCPU = append(t.TasksRequestCPU, "quarkus-native:1000m")
-				}
-				if !existsTaskRequest(t.TasksRequestMemory, "quarkus-native") {
-					t.TasksRequestMemory = append(t.TasksRequestMemory, "quarkus-native:4Gi")
+				if ok && (isNativeIntegration || isNativeKit) {
+					// TODO expect maven repository in local repo (need to change builder pod accordingly!)
+					command := builder.QuarkusRuntimeSupport(e.CamelCatalog.GetCamelQuarkusVersion()).BuildCommands()
+					nativeBuilderImage := quarkus.NativeBuilderImage
+					if nativeBuilderImage == "" {
+						// default from the catalog
+						nativeBuilderImage = e.CamelCatalog.GetQuarkusToolingImage()
+					}
+					// it should be performed as the last custom task
+					t.Tasks = append(t.Tasks, fmt.Sprintf(`quarkus-native;%s;/bin/bash -c "%s"`, nativeBuilderImage, command))
+					// Force the build to run in a separate Pod and strictly sequential
+					m := "This is a Quarkus native build: setting build configuration with build Pod strategy and native container sensible resources (if not specified by the user). Make sure your cluster can handle it."
+					t.L.Info(m)
+					condition = newOrAppend(condition, m)
+					t.Strategy = string(v1.BuildStrategyPod)
+					t.OrderStrategy = string(v1.BuildOrderStrategySequential)
+					if !existsTaskRequest(t.TasksRequestCPU, "quarkus-native") {
+						t.TasksRequestCPU = append(t.TasksRequestCPU, "quarkus-native:1000m")
+					}
+					if !existsTaskRequest(t.TasksRequestMemory, "quarkus-native") {
+						t.TasksRequestMemory = append(t.TasksRequestMemory, "quarkus-native:4Gi")
+					}
 				}
 			}
+
 		}
+
 		return true, condition, nil
 	}
 
-	return false, condition, nil
+	if e.Integration != nil {
+		// Required to propagate to kits trait later on
+		return true, nil, nil
+	}
+
+	return false, nil, nil
 }
 
 func existsTaskRequest(tasks []string, taskName string) bool {
@@ -160,127 +184,130 @@ func newOrAppend(condition *TraitCondition, message string) *TraitCondition {
 }
 
 func (t *builderTrait) Apply(e *Environment) error {
-	// local pipeline tasks
-	var pipelineTasks []v1.Task
+	if e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) {
+		// local pipeline tasks
+		var pipelineTasks []v1.Task
 
-	// task configuration resources
-	tasksConf, err := t.parseTasksConf()
-	if err != nil {
-		return err
-	}
-
-	imageName := getImageName(e)
-	// Building task
-	builderTask, err := t.builderTask(e, taskConfOrDefault(tasksConf, "builder"))
-	if err != nil {
-		if err := failIntegrationKit(
-			e,
-			"IntegrationKitPropertiesFormatValid",
-			corev1.ConditionFalse,
-			"IntegrationKitPropertiesFormatValid",
-			fmt.Sprintf("One or more properties where not formatted as expected: %s", err.Error()),
-		); err != nil {
+		// task configuration resources
+		tasksConf, err := t.parseTasksConf()
+		if err != nil {
 			return err
 		}
-		return nil
-	}
-	builderTask.Configuration.NodeSelector = t.NodeSelector
-	builderTask.Configuration.Annotations = t.Annotations
-	pipelineTasks = append(pipelineTasks, v1.Task{Builder: builderTask})
 
-	// Custom tasks
-	if t.Tasks != nil {
-		realBuildStrategy := builderTask.Configuration.Strategy
-		if realBuildStrategy == "" {
-			realBuildStrategy = e.Platform.Status.Build.BuildConfiguration.Strategy
-		}
-		if len(t.Tasks) > 0 && realBuildStrategy != v1.BuildStrategyPod {
+		imageName := getImageName(e)
+		// Building task
+		builderTask, err := t.builderTask(e, taskConfOrDefault(tasksConf, "builder"))
+		if err != nil {
 			if err := failIntegrationKit(
 				e,
-				"IntegrationKitTasksValid",
+				"IntegrationKitPropertiesFormatValid",
 				corev1.ConditionFalse,
-				"IntegrationKitTasksValid",
-				fmt.Sprintf("Pipeline tasks unavailable when using `%s` platform build strategy: use `%s` instead.",
-					realBuildStrategy,
-					v1.BuildStrategyPod),
+				"IntegrationKitPropertiesFormatValid",
+				fmt.Sprintf("One or more properties where not formatted as expected: %s", err.Error()),
 			); err != nil {
 				return err
 			}
 			return nil
 		}
+		builderTask.Configuration.NodeSelector = t.NodeSelector
+		builderTask.Configuration.Annotations = t.Annotations
+		pipelineTasks = append(pipelineTasks, v1.Task{Builder: builderTask})
 
-		customTasks, err := t.customTasks(tasksConf, imageName)
-		if err != nil {
-			return err
-		}
+		// Custom tasks
+		if t.Tasks != nil {
+			realBuildStrategy := builderTask.Configuration.Strategy
+			if realBuildStrategy == "" {
+				realBuildStrategy = e.Platform.Status.Build.BuildConfiguration.Strategy
+			}
+			if len(t.Tasks) > 0 && realBuildStrategy != v1.BuildStrategyPod {
+				if err := failIntegrationKit(
+					e,
+					"IntegrationKitTasksValid",
+					corev1.ConditionFalse,
+					"IntegrationKitTasksValid",
+					fmt.Sprintf("Pipeline tasks unavailable when using `%s` platform build strategy: use `%s` instead.",
+						realBuildStrategy,
+						v1.BuildStrategyPod),
+				); err != nil {
+					return err
+				}
+				return nil
+			}
 
-		pipelineTasks = append(pipelineTasks, customTasks...)
-	}
-
-	// Packaging task
-	// It's the same builder configuration, but with different steps and conf
-	packageTask := builderTask.DeepCopy()
-	packageTask.Name = "package"
-	packageTask.Configuration = *taskConfOrDefault(tasksConf, "package")
-	packageTask.Steps = make([]string, 0)
-	pipelineTasks = append(pipelineTasks, v1.Task{Package: packageTask})
-
-	// Publishing task
-	switch e.Platform.Status.Build.PublishStrategy {
-	case v1.IntegrationPlatformBuildPublishStrategySpectrum:
-		pipelineTasks = append(pipelineTasks, v1.Task{Spectrum: &v1.SpectrumTask{
-			BaseTask: v1.BaseTask{
-				Name:          "spectrum",
-				Configuration: *taskConfOrDefault(tasksConf, "spectrum"),
-			},
-			PublishTask: v1.PublishTask{
-				BaseImage: t.getBaseImage(e),
-				Image:     imageName,
-				Registry:  e.Platform.Status.Build.Registry,
-			},
-		}})
-
-	case v1.IntegrationPlatformBuildPublishStrategyJib:
-		pipelineTasks = append(pipelineTasks, v1.Task{Jib: &v1.JibTask{
-			BaseTask: v1.BaseTask{
-				Name:          "jib",
-				Configuration: *taskConfOrDefault(tasksConf, "jib"),
-			},
-			PublishTask: v1.PublishTask{
-				BaseImage: t.getBaseImage(e),
-				Image:     imageName,
-				Registry:  e.Platform.Status.Build.Registry,
-			},
-		}})
-
-	case v1.IntegrationPlatformBuildPublishStrategyS2I:
-		pipelineTasks = append(pipelineTasks, v1.Task{S2i: &v1.S2iTask{
-			BaseTask: v1.BaseTask{
-				Name:          "s2i",
-				Configuration: *taskConfOrDefault(tasksConf, "s2i"),
-			},
-			Tag: e.IntegrationKit.ResourceVersion,
-		}})
-	}
-
-	// filter only those tasks required by the user
-	if t.TasksFilter != "" {
-		flt := strings.Split(t.TasksFilter, ",")
-		if pipelineTasks, err = filter(pipelineTasks, flt); err != nil {
-			if err := failIntegrationKit(
-				e,
-				"IntegrationKitTasksValid",
-				corev1.ConditionFalse,
-				"IntegrationKitTasksValid",
-				err.Error(),
-			); err != nil {
+			customTasks, err := t.customTasks(tasksConf, imageName)
+			if err != nil {
 				return err
 			}
-			return err
+
+			pipelineTasks = append(pipelineTasks, customTasks...)
 		}
+
+		// Packaging task
+		// It's the same builder configuration, but with different steps and conf
+		packageTask := builderTask.DeepCopy()
+		packageTask.Name = "package"
+		packageTask.Configuration = *taskConfOrDefault(tasksConf, "package")
+		packageTask.Steps = make([]string, 0)
+		pipelineTasks = append(pipelineTasks, v1.Task{Package: packageTask})
+
+		// Publishing task
+		switch e.Platform.Status.Build.PublishStrategy {
+		case v1.IntegrationPlatformBuildPublishStrategySpectrum:
+			pipelineTasks = append(pipelineTasks, v1.Task{Spectrum: &v1.SpectrumTask{
+				BaseTask: v1.BaseTask{
+					Name:          "spectrum",
+					Configuration: *taskConfOrDefault(tasksConf, "spectrum"),
+				},
+				PublishTask: v1.PublishTask{
+					BaseImage: t.getBaseImage(e),
+					Image:     imageName,
+					Registry:  e.Platform.Status.Build.Registry,
+				},
+			}})
+
+		case v1.IntegrationPlatformBuildPublishStrategyJib:
+			pipelineTasks = append(pipelineTasks, v1.Task{Jib: &v1.JibTask{
+				BaseTask: v1.BaseTask{
+					Name:          "jib",
+					Configuration: *taskConfOrDefault(tasksConf, "jib"),
+				},
+				PublishTask: v1.PublishTask{
+					BaseImage: t.getBaseImage(e),
+					Image:     imageName,
+					Registry:  e.Platform.Status.Build.Registry,
+				},
+			}})
+
+		case v1.IntegrationPlatformBuildPublishStrategyS2I:
+			pipelineTasks = append(pipelineTasks, v1.Task{S2i: &v1.S2iTask{
+				BaseTask: v1.BaseTask{
+					Name:          "s2i",
+					Configuration: *taskConfOrDefault(tasksConf, "s2i"),
+				},
+				Tag: e.IntegrationKit.ResourceVersion,
+			}})
+		}
+
+		// filter only those tasks required by the user
+		if t.TasksFilter != "" {
+			flt := strings.Split(t.TasksFilter, ",")
+			if pipelineTasks, err = filter(pipelineTasks, flt); err != nil {
+				if err := failIntegrationKit(
+					e,
+					"IntegrationKitTasksValid",
+					corev1.ConditionFalse,
+					"IntegrationKitTasksValid",
+					err.Error(),
+				); err != nil {
+					return err
+				}
+				return err
+			}
+		}
+		// add local pipeline tasks to env pipeline
+		e.Pipeline = append(e.Pipeline, pipelineTasks...)
 	}
-	// add local pipeline tasks to env pipeline
-	e.Pipeline = append(e.Pipeline, pipelineTasks...)
+
 	return nil
 }
 

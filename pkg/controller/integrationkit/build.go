@@ -185,7 +185,7 @@ func (action *buildAction) handleBuildSubmitted(ctx context.Context, kit *v1.Int
 		return kit, nil
 	}
 
-	return nil, nil
+	return kit, nil
 }
 
 func (action *buildAction) handleBuildRunning(ctx context.Context, kit *v1.IntegrationKit) (*v1.IntegrationKit, error) {

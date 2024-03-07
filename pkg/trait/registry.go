@@ -60,8 +60,7 @@ func (t *registryTrait) InfluencesBuild(this, prev map[string]interface{}) bool 
 }
 
 func (t *registryTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
-	// disabled by default
-	if e.IntegrationKit == nil || !pointer.BoolDeref(t.Enabled, false) {
+	if !pointer.BoolDeref(t.Enabled, false) {
 		return false, nil, nil
 	}
 	enabled := e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted)
@@ -74,50 +73,54 @@ func (t *registryTrait) Configure(e *Environment) (bool, *TraitCondition, error)
 		)
 		return true, condition, nil
 	}
-	return false, nil, nil
+
+	return true, nil, nil
 }
 
 func (t *registryTrait) Apply(e *Environment) error {
-	registryAddress := e.Platform.Status.Build.Registry.Address
-	if registryAddress == "" && e.Platform.Status.Cluster == v1.IntegrationPlatformClusterOpenShift {
-		registryAddress = defaults.OpenShiftRegistryAddress
-	}
-	if registryAddress == "" {
-		return errors.New("could not figure out Image Registry URL, please set it manually")
-	}
-	build := getBuilderTask(e.Pipeline)
-	registryCa := e.Platform.Status.Build.Registry.CA
-	registrySecret := e.Platform.Status.Build.Registry.Secret
-	if e.Platform.Status.Cluster == v1.IntegrationPlatformClusterOpenShift {
-		if registryCa == "" {
-			ca, err := getOpenShiftImageRegistryCA(e)
+	if e.IntegrationKitInPhase(v1.IntegrationKitPhaseBuildSubmitted) {
+		registryAddress := e.Platform.Status.Build.Registry.Address
+		if registryAddress == "" && e.Platform.Status.Cluster == v1.IntegrationPlatformClusterOpenShift {
+			registryAddress = defaults.OpenShiftRegistryAddress
+		}
+		if registryAddress == "" {
+			return errors.New("could not figure out Image Registry URL, please set it manually")
+		}
+		build := getBuilderTask(e.Pipeline)
+		registryCa := e.Platform.Status.Build.Registry.CA
+		registrySecret := e.Platform.Status.Build.Registry.Secret
+		if e.Platform.Status.Cluster == v1.IntegrationPlatformClusterOpenShift {
+			if registryCa == "" {
+				ca, err := getOpenShiftImageRegistryCA(e)
+				if err != nil {
+					return err
+				}
+				registryCa = ca
+			}
+			if registrySecret == "" {
+				secret, err := getOpenShiftRegistrySecret(e)
+				if err != nil {
+					return err
+				}
+				registrySecret = secret
+			}
+		}
+		if registryCa != "" {
+			err := addImageRegistryCaToMavenBuild(registryCa, build)
 			if err != nil {
 				return err
 			}
-			registryCa = ca
 		}
-		if registrySecret == "" {
-			secret, err := getOpenShiftRegistrySecret(e)
+		if registrySecret != "" {
+			server, err := extractMavenServerCredentialsFromSecret(registrySecret, e, registryAddress)
 			if err != nil {
 				return err
 			}
-			registrySecret = secret
+			build.Maven.Servers = append(build.Maven.Servers, server)
 		}
+		addRegistryAndExtensionToMaven(registryAddress, build, e.Platform)
 	}
-	if registryCa != "" {
-		err := addImageRegistryCaToMavenBuild(registryCa, build)
-		if err != nil {
-			return err
-		}
-	}
-	if registrySecret != "" {
-		server, err := extractMavenServerCredentialsFromSecret(registrySecret, e, registryAddress)
-		if err != nil {
-			return err
-		}
-		build.Maven.Servers = append(build.Maven.Servers, server)
-	}
-	addRegistryAndExtensionToMaven(registryAddress, build, e.Platform)
+
 	return nil
 }
 

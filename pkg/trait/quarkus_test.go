@@ -225,6 +225,49 @@ func TestGetLanguageSettingsWithLoaders(t *testing.T) {
 	assert.Equal(t, languageSettings{native: true, sourcesRequiredAtBuildTime: false}, getLanguageSettings(environment, v1.LanguageJavaShell))
 }
 
+func TestPropagateStatusTraits(t *testing.T) {
+	quarkusTrait, environment := createNominalQuarkusTest()
+	environment.IntegrationKit = nil
+	environment.Integration = &v1.Integration{
+		Spec:   v1.IntegrationSpec{},
+		Status: v1.IntegrationStatus{},
+	}
+
+	environment.ExecutedTraits = []Trait{
+		&camelTrait{
+			BasePlatformTrait: NewBasePlatformTrait("camel", 200),
+			CamelTrait: traitv1.CamelTrait{
+				Properties:     []string{"hello=world"},
+				RuntimeVersion: "1.2.3",
+			},
+		},
+	}
+
+	newKit, err := quarkusTrait.newIntegrationKit(environment, fastJarPackageType)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"hello=world"}, newKit.Spec.Traits.Camel.Properties)
+	assert.Equal(t, "1.2.3", newKit.Spec.Traits.Camel.RuntimeVersion)
+	// The Quarkus trait was declared empty
+	assert.Equal(t, &traitv1.QuarkusTrait{}, newKit.Spec.Traits.Quarkus)
+}
+
+func TestPropagateQuarkusTrait(t *testing.T) {
+	quarkusTrait, environment := createNominalQuarkusTest()
+	quarkusTrait.QuarkusTrait.NativeBuilderImage = "overridden-value"
+	environment.IntegrationKit = nil
+	environment.Integration = &v1.Integration{
+		Spec:   v1.IntegrationSpec{},
+		Status: v1.IntegrationStatus{},
+	}
+
+	environment.ExecutedTraits = []Trait{}
+
+	newKit, err := quarkusTrait.newIntegrationKit(environment, fastJarPackageType)
+	assert.Nil(t, err)
+	// The Quarkus trait was providing some value
+	assert.Equal(t, &traitv1.QuarkusTrait{NativeBuilderImage: "overridden-value"}, newKit.Spec.Traits.Quarkus)
+}
+
 func TestQuarkusMatches(t *testing.T) {
 	qt := quarkusTrait{
 		BasePlatformTrait: NewBasePlatformTrait("quarkus", 600),
