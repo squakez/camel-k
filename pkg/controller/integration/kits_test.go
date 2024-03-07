@@ -27,7 +27,6 @@ import (
 	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
 
 	"github.com/apache/camel-k/v2/pkg/trait"
-	"github.com/apache/camel-k/v2/pkg/util/log"
 	"github.com/apache/camel-k/v2/pkg/util/test"
 
 	"github.com/stretchr/testify/assert"
@@ -92,10 +91,6 @@ func TestLookupKitForIntegration_DiscardKitsInError(t *testing.T) {
 	)
 
 	assert.Nil(t, err)
-
-	a := buildKitAction{}
-	a.InjectLogger(log.Log)
-	a.InjectClient(c)
 
 	kits, err := lookupKitsForIntegration(context.TODO(), c, &v1.Integration{
 		TypeMeta: metav1.TypeMeta{
@@ -233,10 +228,6 @@ func TestLookupKitForIntegration_DiscardKitsWithIncompatibleTraits(t *testing.T)
 
 	assert.Nil(t, err)
 
-	a := buildKitAction{}
-	a.InjectLogger(log.Log)
-	a.InjectClient(c)
-
 	kits, err := lookupKitsForIntegration(context.TODO(), c, &v1.Integration{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: v1.SchemeGroupVersion.String(),
@@ -315,9 +306,6 @@ func TestHasMatchingTraits_KitNoTraitShouldNotBePicked(t *testing.T) {
 		},
 	}
 
-	a := buildKitAction{}
-	a.InjectLogger(log.Log)
-
 	ok, err := integrationAndKitHaveSameTraits(integration, kit)
 	assert.Nil(t, err)
 	assert.False(t, ok)
@@ -385,9 +373,6 @@ func TestHasMatchingTraits_KitSameTraitShouldBePicked(t *testing.T) {
 			},
 		},
 	}
-
-	a := buildKitAction{}
-	a.InjectLogger(log.Log)
 
 	ok, err := integrationAndKitHaveSameTraits(integration, kit)
 	assert.Nil(t, err)

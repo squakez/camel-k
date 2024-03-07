@@ -344,3 +344,37 @@ func TestSameTraits(t *testing.T) {
 		assert.False(t, ok)
 	})
 }
+
+func TestHasMathchingTraitsEmpty(t *testing.T) {
+	opt1 := Options{
+		"builder": {},
+		"camel": {
+			"runtimeVersion": "1.2.3",
+		},
+		"quarkus": {},
+	}
+	opt2 := Options{
+		"camel": {
+			"runtimeVersion": "1.2.3",
+		},
+	}
+	opt3 := Options{
+		"camel": {
+			"runtimeVersion": "1.2.3",
+		},
+	}
+	opt4 := Options{
+		"camel": {
+			"runtimeVersion": "3.2.1",
+		},
+	}
+	b1, err := HasMatchingTraits(opt1, opt2)
+	assert.Nil(t, err)
+	assert.True(t, b1)
+	b2, err := HasMatchingTraits(opt1, opt4)
+	assert.Nil(t, err)
+	assert.False(t, b2)
+	b3, err := HasMatchingTraits(opt2, opt3)
+	assert.Nil(t, err)
+	assert.True(t, b3)
+}

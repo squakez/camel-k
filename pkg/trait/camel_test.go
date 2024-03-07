@@ -207,3 +207,57 @@ func TestApplyCamelTraitWithSources(t *testing.T) {
 		"content": "XML Source Code",
 	}, sourceCm.Data)
 }
+
+func TestCamelTraitDoesntInfluenceBuild(t *testing.T) {
+	opt1 := Options{
+		"camel": map[string]interface{}{
+			"properties": []string{
+				"hello=world",
+			},
+		},
+	}
+	opt2 := Options{
+		"camel": map[string]interface{}{
+			"properties": []string{
+				"hello=world",
+			},
+		},
+	}
+	opt3 := Options{
+		"camel": map[string]interface{}{
+			"properties": []string{
+				"hello=world2",
+			},
+		},
+	}
+	b1, err := HasMatchingTraits(opt1, opt2)
+	assert.Nil(t, err)
+	assert.True(t, b1, "Traits should match")
+	b2, err := HasMatchingTraits(opt1, opt3)
+	assert.Nil(t, err)
+	assert.True(t, b2, "Traits should match")
+}
+
+func TestCamelTraitInfluencesBuild(t *testing.T) {
+	opt1 := Options{
+		"camel": map[string]interface{}{
+			"runtimeVersion": "1.2.3",
+		},
+	}
+	opt2 := Options{
+		"camel": map[string]interface{}{
+			"runtimeVersion": "1.2.3",
+		},
+	}
+	opt3 := Options{
+		"camel": map[string]interface{}{
+			"runtimeVersion": "3.2.1",
+		},
+	}
+	b1, err := HasMatchingTraits(opt1, opt2)
+	assert.Nil(t, err)
+	assert.True(t, b1, "Traits should match")
+	b2, err := HasMatchingTraits(opt1, opt3)
+	assert.Nil(t, err)
+	assert.False(t, b2, "Traits shouldn't match")
+}

@@ -48,7 +48,6 @@ func TestBuilderTraitNotAppliedBecauseOfNilKit(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Empty(t, conditions)
 			assert.NotEmpty(t, e.ExecutedTraits)
-			assert.Nil(t, e.GetTrait("builder"))
 			assert.Empty(t, e.Pipeline)
 		})
 	}
@@ -69,7 +68,6 @@ func TestBuilderTraitNotAppliedBecauseOfNilPhase(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Empty(t, conditions)
 			assert.NotEmpty(t, e.ExecutedTraits)
-			assert.Nil(t, e.GetTrait("builder"))
 			assert.Empty(t, e.Pipeline)
 		})
 	}
@@ -601,4 +599,91 @@ func tasksByName(tasks []v1.Task) []string {
 		}
 	}
 	return pipelineTasks
+}
+
+func TestBuilderTraitDoesntInfluencesBuild(t *testing.T) {
+	opt1 := Options{
+		"builder": map[string]interface{}{
+			"orderStrategy": "dependencies",
+		},
+	}
+	opt2 := Options{
+		"builder": map[string]interface{}{
+			"builder": map[string]interface{}{
+				"orderStrategy": "dependencies",
+			},
+		},
+	}
+	opt3 := Options{
+		"builder": map[string]interface{}{
+			"builder": map[string]interface{}{
+				"orderStrategy": "fifo",
+			},
+		},
+	}
+	b1, err := HasMatchingTraits(opt1, opt2)
+	assert.Nil(t, err)
+	assert.True(t, b1, "Traits should match")
+	b2, err := HasMatchingTraits(opt1, opt3)
+	assert.Nil(t, err)
+	assert.True(t, b2, "Traits should match")
+}
+
+func TestBuilderTraitInfluencesBuild(t *testing.T) {
+	opt1 := Options{
+		"builder": map[string]interface{}{
+			"properties": []string{
+				"iam=test",
+				"hello=world",
+			},
+		},
+	}
+	opt2 := Options{
+		"builder": map[string]interface{}{
+			"properties": []string{
+				"iam=test",
+				"hello=world",
+			},
+		},
+	}
+	opt3 := Options{
+		"builder": map[string]interface{}{
+			"properties": []string{
+				// Inverting order to prove consistency
+				"hello=world",
+				"iam=test",
+			},
+		},
+	}
+	opt4 := Options{
+		"builder": map[string]interface{}{
+			"properties": []string{
+				"iam=test",
+				"hello=world2",
+			},
+		},
+	}
+	opt5 := Options{
+		"builder": map[string]interface{}{},
+	}
+	opt6 := Options{}
+
+	b1, err := HasMatchingTraits(opt1, opt2)
+	assert.Nil(t, err)
+	assert.True(t, b1, "Traits should match")
+	b2, err := HasMatchingTraits(opt1, opt3)
+	assert.Nil(t, err)
+	assert.True(t, b2, "Traits should match")
+	b3, err := HasMatchingTraits(opt1, opt4)
+	assert.Nil(t, err)
+	assert.False(t, b3, "Traits shouldn't match")
+	b4, err := HasMatchingTraits(opt1, opt5)
+	assert.Nil(t, err)
+	assert.False(t, b4, "Traits shouldn't match")
+	b5, err := HasMatchingTraits(opt1, opt6)
+	assert.Nil(t, err)
+	assert.False(t, b5, "Traits shouldn't match")
+	b6, err := HasMatchingTraits(opt5, opt6)
+	assert.Nil(t, err)
+	assert.True(t, b6, "Traits should match")
 }

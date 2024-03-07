@@ -597,3 +597,67 @@ func containsEndpoint(name string, e *Environment, c client.Client) (bool, error
 	}
 	return hasKnativeEndpoint, nil
 }
+
+// HasMatchingTraits verifies if two traits options match.
+func HasMatchingTraits(traitMap Options, kitTraitMap Options) (bool, error) {
+	catalog := NewCatalog(nil)
+
+	for _, t := range catalog.AllTraits() {
+		if t == nil {
+			continue
+		}
+
+		id := string(t.ID())
+		it, ok1 := traitMap.Get(id)
+		kt, ok2 := kitTraitMap.Get(id)
+
+		if (!ok1 || len(it) == 0) && (!ok2 || len(kt) == 0) {
+			continue
+		}
+
+		if t.InfluencesKit() && t.InfluencesBuild(it, kt) {
+			if ct, ok := t.(ComparableTrait); ok {
+				// if it's match trait use its matches method to determine the match
+				if match, err := matchesComparableTrait(ct, it, kt); !match || err != nil {
+					return false, err
+				} else {
+					return match, nil
+				}
+			} else {
+				if !matchesTrait(it, kt) {
+					return false, nil
+				}
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func matchesComparableTrait(ct ComparableTrait, it map[string]interface{}, kt map[string]interface{}) (bool, error) {
+	t1 := reflect.New(reflect.TypeOf(ct).Elem()).Interface()
+	if err := ToTrait(it, &t1); err != nil {
+		return false, err
+	}
+
+	t2 := reflect.New(reflect.TypeOf(ct).Elem()).Interface()
+	if err := ToTrait(kt, &t2); err != nil {
+		return false, err
+	}
+
+	ct2, ok := t2.(ComparableTrait)
+	if !ok {
+		return false, fmt.Errorf("type assertion failed: %v", t2)
+	}
+	tt1, ok := t1.(Trait)
+	if !ok {
+		return false, fmt.Errorf("type assertion failed: %v", t1)
+	}
+
+	return ct2.Matches(tt1), nil
+}
+
+func matchesTrait(it map[string]interface{}, kt map[string]interface{}) bool {
+	// perform exact match on the two trait maps
+	return reflect.DeepEqual(it, kt)
+}
