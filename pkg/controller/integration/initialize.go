@@ -52,6 +52,7 @@ func (action *initializeAction) CanHandle(integration *v1.Integration) bool {
 
 // Handle handles the integrations.
 func (action *initializeAction) Handle(ctx context.Context, integration *v1.Integration) (*v1.Integration, error) {
+	fmt.Println("*********** Initialize IT status", integration.Status)
 	action.L.Info("Initializing Integration")
 
 	if integration.Annotations[v1.IntegrationImportedNameLabel] != "" {

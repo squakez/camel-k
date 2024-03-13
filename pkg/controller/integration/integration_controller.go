@@ -104,6 +104,8 @@ func integrationUpdateFunc(old *v1.Integration, it *v1.Integration) bool {
 			"unable to determine if old and new resource have the same traits")
 	}
 	if !sameTraits {
+		fmt.Println("********* integrationUpdateFunc traits changed")
+		it.Initialize()
 		return true
 	}
 

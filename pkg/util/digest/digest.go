@@ -115,17 +115,17 @@ func ComputeForIntegration(integration *v1.Integration, configmapVersions []stri
 	// Calculation logic prior to 1.10.0 (the new Traits API schema) is maintained
 	// in order to keep consistency in the digest calculated from the same set of
 	// Trait configurations for backward compatibility.
-	if err := computeForTraits(hash, integration.Spec.Traits); err != nil {
-		return "", err
-	}
+	// if err := computeForTraits(hash, integration.Spec.Traits); err != nil {
+	// 	return "", err
+	// }
 
-	// Integration traits as annotations
-	for _, k := range sortedTraitAnnotationsKeys(integration) {
-		v := integration.Annotations[k]
-		if _, err := hash.Write([]byte(fmt.Sprintf("%s=%v,", k, v))); err != nil {
-			return "", err
-		}
-	}
+	// // Integration traits as annotations
+	// for _, k := range sortedTraitAnnotationsKeys(integration) {
+	// 	v := integration.Annotations[k]
+	// 	if _, err := hash.Write([]byte(fmt.Sprintf("%s=%v,", k, v))); err != nil {
+	// 		return "", err
+	// 	}
+	// }
 
 	// Configmap versions
 	for _, cm := range configmapVersions {

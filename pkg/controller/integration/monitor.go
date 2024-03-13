@@ -65,6 +65,7 @@ func (action *monitorAction) CanHandle(integration *v1.Integration) bool {
 }
 
 func (action *monitorAction) Handle(ctx context.Context, integration *v1.Integration) (*v1.Integration, error) {
+	fmt.Println("*********** Monitoring IT status", integration.Status)
 	// When in InitializationFailed condition a kit is not available for the integration
 	// so handle it differently from the rest
 	if isInInitializationFailed(integration.Status) {
