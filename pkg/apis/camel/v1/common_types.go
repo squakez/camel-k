@@ -133,6 +133,8 @@ type Artifact struct {
 	Target string `json:"target,omitempty" yaml:"target,omitempty"`
 	// a checksum (SHA1) of the content
 	Checksum string `json:"checksum,omitempty" yaml:"checksum,omitempty"`
+	// a flag to identify those artifacts that can be used as Java executable
+	Executable bool `json:"executable,omitempty" yaml:"executable,omitempty"`
 }
 
 // Failure represent a message specifying the reason and the time of an event failure.

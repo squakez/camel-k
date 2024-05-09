@@ -65,6 +65,15 @@ func TestContainerWithDefaults(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "dependencies/quarkus-run.jar",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -143,6 +152,15 @@ func TestContainerWithOpenshift(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "dependencies/quarkus-run.jar",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -214,6 +232,15 @@ func TestContainerWithCustomName(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "dependencies/quarkus-run.jar",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -765,6 +792,15 @@ func createSettingContextEnvironment(t *testing.T, profile v1.TraitProfile) *Env
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "dependencies/quarkus-run.jar",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},

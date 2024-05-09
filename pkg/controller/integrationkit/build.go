@@ -234,12 +234,9 @@ func (action *buildAction) handleBuildRunning(ctx context.Context, kit *v1.Integ
 
 		for _, a := range build.Status.Artifacts {
 			// do not include artifact location
-			kit.Status.Artifacts = append(kit.Status.Artifacts, v1.Artifact{
-				ID:       a.ID,
-				Location: "",
-				Target:   a.Target,
-				Checksum: a.Checksum,
-			})
+			artifact := a.DeepCopy()
+			artifact.Location = ""
+			kit.Status.Artifacts = append(kit.Status.Artifacts, *artifact)
 		}
 
 		return kit, err

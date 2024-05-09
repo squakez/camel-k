@@ -525,6 +525,15 @@ func createTestEnv(t *testing.T, cluster v1.IntegrationPlatformCluster, script s
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},

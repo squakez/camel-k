@@ -159,6 +159,15 @@ func createPodSettingContextEnvironment(t *testing.T, profile v1.TraitProfile) *
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -225,6 +234,15 @@ func createOpenshiftPodSettingContextEnvironment(t *testing.T, profile v1.TraitP
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},

@@ -212,6 +212,15 @@ func mockEnvironment(catalog *camel.RuntimeCatalog) Environment {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},

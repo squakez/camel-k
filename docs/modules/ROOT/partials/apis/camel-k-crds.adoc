@@ -443,6 +443,13 @@ string
 
 a checksum (SHA1) of the content
 
+|`executable` +
+bool
+|
+
+
+a flag to identify those artifacts that can be used as Java executable
+
 
 |===
 
@@ -7306,6 +7313,7 @@ bool
 
 
 Prints the command used the start the JVM in the container logs (default `true`)
+Deprecated: no longer in use.
 
 |`debugAddress` +
 string
@@ -7327,6 +7335,13 @@ string
 
 
 Additional JVM classpath (use `Linux` classpath separator)
+
+|`jar` +
+string
+|
+
+
+The Jar dependency which will run the application. Leave it empty for managed Integrations.
 
 
 |===

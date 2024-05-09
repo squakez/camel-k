@@ -22,10 +22,11 @@ package v1
 // ArtifactApplyConfiguration represents an declarative configuration of the Artifact type for use
 // with apply.
 type ArtifactApplyConfiguration struct {
-	ID       *string `json:"id,omitempty"`
-	Location *string `json:"location,omitempty"`
-	Target   *string `json:"target,omitempty"`
-	Checksum *string `json:"checksum,omitempty"`
+	ID         *string `json:"id,omitempty"`
+	Location   *string `json:"location,omitempty"`
+	Target     *string `json:"target,omitempty"`
+	Checksum   *string `json:"checksum,omitempty"`
+	Executable *bool   `json:"executable,omitempty"`
 }
 
 // ArtifactApplyConfiguration constructs an declarative configuration of the Artifact type for use with
@@ -63,5 +64,13 @@ func (b *ArtifactApplyConfiguration) WithTarget(value string) *ArtifactApplyConf
 // If called multiple times, the Checksum field is set to the value of the last call.
 func (b *ArtifactApplyConfiguration) WithChecksum(value string) *ArtifactApplyConfiguration {
 	b.Checksum = &value
+	return b
+}
+
+// WithExecutable sets the Executable field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the Executable field is set to the value of the last call.
+func (b *ArtifactApplyConfiguration) WithExecutable(value bool) *ArtifactApplyConfiguration {
+	b.Executable = &value
 	return b
 }

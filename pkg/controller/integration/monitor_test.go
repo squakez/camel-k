@@ -168,6 +168,15 @@ func nominalEnvironment() (client.Client, *v1.Integration, error) {
 			Name:      "my-kit",
 		},
 		Status: v1.IntegrationKitStatus{
+			Artifacts: []v1.Artifact{
+				{
+					ID:         "quarkus-run.jar",
+					Location:   "location",
+					Target:     "target",
+					Checksum:   "XYZ",
+					Executable: true,
+				},
+			},
 			Phase: v1.IntegrationKitPhaseReady,
 		},
 	}

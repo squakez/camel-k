@@ -96,6 +96,15 @@ func TestKnativeService(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -224,6 +233,15 @@ func TestKnativeServiceWithCustomContainerName(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -309,6 +327,15 @@ func TestKnativeServiceWithRest(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -377,6 +404,15 @@ func TestKnativeServiceNotApplicable(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -452,6 +488,15 @@ func TestKnativeServiceNoServingAvailable(t *testing.T) {
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
@@ -564,6 +609,15 @@ func createKnativeServiceTestEnvironment(t *testing.T, trait *traitv1.KnativeSer
 		},
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},

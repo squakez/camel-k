@@ -1913,6 +1913,10 @@ spec:
                     checksum:
                       description: a checksum (SHA1) of the content
                       type: string
+                    executable:
+                      description: a flag to identify those artifacts that can be
+                        used as Java executable
+                      type: boolean
                     id:
                       description: the identification (GAV for maven dependencies
                         or file name for other file types)

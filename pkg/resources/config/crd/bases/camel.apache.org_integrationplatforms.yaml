@@ -1285,14 +1285,19 @@ spec:
                         description: Can be used to enable or disable a trait. All
                           traits share this common property.
                         type: boolean
+                      jar:
+                        description: The Jar dependency which will run the application.
+                          Leave it empty for managed Integrations.
+                        type: string
                       options:
                         description: A list of JVM options
                         items:
                           type: string
                         type: array
                       printCommand:
-                        description: Prints the command used the start the JVM in
-                          the container logs (default `true`)
+                        description: 'Prints the command used the start the JVM in
+                          the container logs (default `true`) Deprecated: no longer
+                          in use.'
                         type: boolean
                     type: object
                   kamelets:
@@ -3275,14 +3280,19 @@ spec:
                         description: Can be used to enable or disable a trait. All
                           traits share this common property.
                         type: boolean
+                      jar:
+                        description: The Jar dependency which will run the application.
+                          Leave it empty for managed Integrations.
+                        type: string
                       options:
                         description: A list of JVM options
                         items:
                           type: string
                         type: array
                       printCommand:
-                        description: Prints the command used the start the JVM in
-                          the container logs (default `true`)
+                        description: 'Prints the command used the start the JVM in
+                          the container logs (default `true`) Deprecated: no longer
+                          in use.'
                         type: boolean
                     type: object
                   kamelets:

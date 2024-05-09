@@ -122,6 +122,17 @@ func (in *IntegrationKit) HasCapability(capability string) bool {
 	return false
 }
 
+// GetExecutableJar returns the first (and, the only) executable artifact.
+func (in *IntegrationKit) GetExecutableArtifact() *Artifact {
+	for _, artifact := range in.Status.Artifacts {
+		if artifact.Executable {
+			return &artifact
+		}
+	}
+
+	return nil
+}
+
 // GetCondition returns the condition with the provided type.
 func (in *IntegrationKitStatus) GetCondition(condType IntegrationKitConditionType) *IntegrationKitCondition {
 	for i := range in.Conditions {

@@ -37,6 +37,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const quarkusDefaultApplicationJar = "quarkus-run.jar"
+
 func init() {
 	registerSteps(Quarkus)
 
@@ -302,13 +304,16 @@ func ProcessQuarkusTransitiveDependencies(mc maven.Context) ([]v1.Artifact, erro
 			if err != nil {
 				return err
 			}
-
-			artifacts = append(artifacts, v1.Artifact{
+			artifact := v1.Artifact{
 				ID:       filepath.Base(fileRelPath),
 				Location: filePath,
 				Target:   filepath.Join(DependenciesDir, fileRelPath),
 				Checksum: "sha1:" + sha1,
-			})
+			}
+			if artifact.ID == quarkusDefaultApplicationJar {
+				artifact.Executable = true
+			}
+			artifacts = append(artifacts, artifact)
 		}
 
 		return nil

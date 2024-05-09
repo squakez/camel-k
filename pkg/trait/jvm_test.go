@@ -20,7 +20,6 @@ package trait
 import (
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 
@@ -35,10 +34,8 @@ import (
 	serving "knative.dev/serving/pkg/apis/serving/v1"
 
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/v2/pkg/builder"
 	"github.com/apache/camel-k/v2/pkg/util/camel"
 	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
-	"github.com/apache/camel-k/v2/pkg/util/sets"
 	"github.com/apache/camel-k/v2/pkg/util/test"
 )
 
@@ -94,6 +91,17 @@ func TestConfigureJvmTraitInWrongJvmDisabled(t *testing.T) {
 	assert.Equal(t, expectedCondition, condition)
 }
 
+func TestConfigureJvmTraitMissingExecutableJar(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit.Status.Artifacts[0].Executable = false
+
+	configured, condition, err := trait.Configure(environment)
+	require.Error(t, err)
+	assert.Equal(t, "could not locate any executable among Integration Kit kit-name artifacts", err.Error())
+	assert.False(t, configured)
+	assert.Nil(t, condition)
+}
+
 func TestConfigureJvmTraitInWrongIntegrationKitPhaseExternal(t *testing.T) {
 	trait, environment := createNominalJvmTest(v1.IntegrationKitTypeSynthetic)
 
@@ -134,20 +142,17 @@ func TestApplyJvmTraitWithDeploymentResource(t *testing.T) {
 	}
 
 	environment.Resources.Add(&d)
-
-	err := trait.Apply(environment)
+	configure, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configure)
+	assert.Nil(t, condition)
+	err = trait.Apply(environment)
 
 	require.NoError(t, err)
-
-	s := sets.NewSet()
-	s.Add("./resources", crMountPath, rdMountPath, "/mount/path")
-	cp := s.List()
-	sort.Strings(cp)
-
 	assert.Equal(t, []string{
 		"-cp",
 		fmt.Sprintf("./resources:%s:%s:/mount/path", crMountPath, rdMountPath),
-		"io.quarkus.bootstrap.runner.QuarkusEntryPoint",
+		"-jar", "dependencies/quarkus-run.jar",
 	}, d.Spec.Template.Spec.Containers[0].Args)
 }
 
@@ -168,20 +173,17 @@ func TestApplyJvmTraitWithKNativeResource(t *testing.T) {
 	}
 
 	environment.Resources.Add(&s)
-
-	err := trait.Apply(environment)
+	configure, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configure)
+	assert.Nil(t, condition)
+	err = trait.Apply(environment)
 
 	require.NoError(t, err)
-
-	st := sets.NewSet()
-	st.Add("./resources", crMountPath, rdMountPath, "/mount/path")
-	cp := st.List()
-	sort.Strings(cp)
-
 	assert.Equal(t, []string{
 		"-cp",
 		fmt.Sprintf("./resources:%s:%s:/mount/path", crMountPath, rdMountPath),
-		"io.quarkus.bootstrap.runner.QuarkusEntryPoint",
+		"-jar", "dependencies/quarkus-run.jar",
 	}, s.Spec.Template.Spec.Containers[0].Args)
 }
 
@@ -210,11 +212,9 @@ func TestApplyJvmTraitWithDebugEnabled(t *testing.T) {
 	}
 
 	environment.Resources.Add(&d)
-
 	err := trait.Apply(environment)
 
 	require.NoError(t, err)
-
 	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args,
 		"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",
 	)
@@ -239,22 +239,18 @@ func TestApplyJvmTraitWithExternalKitType(t *testing.T) {
 
 	environment.Resources.Add(&d)
 
-	err := trait.Apply(environment)
+	environment.Resources.Add(&d)
+	configure, condition, err := trait.Configure(environment)
 	require.NoError(t, err)
+	assert.True(t, configure)
+	assert.Nil(t, condition)
+	err = trait.Apply(environment)
 
-	container := environment.GetIntegrationContainer()
-
-	assert.Equal(t, 3, len(container.Args))
-	assert.Equal(t, "-cp", container.Args[0])
-
-	// classpath JAR location segments must be wildcarded for an external kit
-	for _, cp := range strings.Split(container.Args[1], ":") {
-		if strings.HasPrefix(cp, builder.DeploymentDir) {
-			assert.True(t, strings.HasSuffix(cp, "/*"))
-		}
-	}
-
-	assert.Equal(t, "io.quarkus.bootstrap.runner.QuarkusEntryPoint", container.Args[2])
+	assert.Equal(t, []string{
+		"-cp",
+		fmt.Sprintf("./resources:%s:%s", crMountPath, rdMountPath),
+		"-jar", "dependencies/quarkus-run.jar",
+	}, d.Spec.Template.Spec.Containers[0].Args)
 }
 
 func TestApplyJvmTraitWithClasspath(t *testing.T) {
@@ -278,16 +274,108 @@ func TestApplyJvmTraitWithClasspath(t *testing.T) {
 			},
 		},
 	}
+
 	environment.Resources.Add(&d)
-	err := trait.Apply(environment)
+	configure, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configure)
+	assert.Nil(t, condition)
+	err = trait.Apply(environment)
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{
 		"-cp",
-		fmt.Sprintf("./resources:%s:%s:/mount/path:%s:%s", crMountPath, rdMountPath,
-			"/path/to/another/dep.jar", "/path/to/my-dep.jar"),
-		"io.quarkus.bootstrap.runner.QuarkusEntryPoint",
+		fmt.Sprintf("./resources:%s:%s:/mount/path:%s:%s", crMountPath, rdMountPath, "/path/to/another/dep.jar", "/path/to/my-dep.jar"),
+		"-jar", "dependencies/quarkus-run.jar",
 	}, d.Spec.Template.Spec.Containers[0].Args)
+}
+func TestApplyJvmTraitKitMissing(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit = nil
+
+	err := trait.Apply(environment)
+
+	require.Error(t, err)
+	assert.True(t, strings.HasPrefix(err.Error(), "unable to find integration kit"))
+}
+
+func TestApplyJvmTraitContainerResourceArgs(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	memoryLimit := make(corev1.ResourceList)
+	memoryLimit, err := kubernetes.ConfigureResource("4Gi", memoryLimit, corev1.ResourceMemory)
+	require.NoError(t, err)
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+							Resources: corev1.ResourceRequirements{
+								Limits: memoryLimit,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	environment.Resources.Add(&d)
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Xmx2147M")
+
+	// User specified Xmx option
+	trait.Options = []string{"-Xmx1111M"}
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Xmx1111M")
+}
+
+func TestApplyJvmTraitHttpProxyArgs(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+							Env: []corev1.EnvVar{
+								{
+									Name:  "HTTP_PROXY",
+									Value: "http://my-user:my-password@my-proxy:1234",
+								},
+								{
+									Name:  "HTTPS_PROXY",
+									Value: "https://my-secure-user:my-secure-password@my-secure-proxy:6789",
+								},
+								{
+									Name:  "NO_PROXY",
+									Value: "https://my-non-proxied-host,1.2.3.4",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	environment.Resources.Add(&d)
+	err := trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttp.proxyHost=\"my-proxy\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttp.proxyPort=\"1234\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttp.proxyUser=\"my-user\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttp.proxyPassword=\"my-password\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttps.proxyHost=\"my-secure-proxy\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttps.proxyPort=\"6789\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttps.proxyUser=\"my-secure-user\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttps.proxyPassword=\"my-secure-password\"")
+	assert.Contains(t, d.Spec.Template.Spec.Containers[0].Args, "-Dhttp.nonProxyHosts=\"https://my-non-proxied-host|1.2.3.4\"")
 }
 
 func createNominalJvmTest(kitType string) (*jvmTrait, *Environment) {
@@ -318,6 +406,15 @@ func createNominalJvmTest(kitType string) (*jvmTrait, *Environment) {
 				},
 			},
 			Status: v1.IntegrationKitStatus{
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "dependencies/quarkus-run.jar",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 				Phase: v1.IntegrationKitPhaseReady,
 			},
 		},
