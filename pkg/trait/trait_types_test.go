@@ -257,6 +257,15 @@ func createTestEnvironment(t *testing.T, profile v1.TraitProfile) *Environment {
 		IntegrationKit: &v1.IntegrationKit{
 			Status: v1.IntegrationKitStatus{
 				Phase: v1.IntegrationKitPhaseReady,
+				Artifacts: []v1.Artifact{
+					{
+						ID:         "quarkus-run.jar",
+						Location:   "location",
+						Target:     "target",
+						Checksum:   "XYZ",
+						Executable: true,
+					},
+				},
 			},
 		},
 		Platform: &v1.IntegrationPlatform{
