@@ -133,6 +133,18 @@ func (in *IntegrationKit) GetExecutableArtifact() *Artifact {
 	return nil
 }
 
+// Deprecated: use GetExecutableArtifact() instead.
+// GetArtifact returns a given artifact.
+func (in *IntegrationKit) GetArtifact(id string) *Artifact {
+	for _, artifact := range in.Status.Artifacts {
+		if artifact.ID == id {
+			return &artifact
+		}
+	}
+
+	return nil
+}
+
 // GetCondition returns the condition with the provided type.
 func (in *IntegrationKitStatus) GetCondition(condType IntegrationKitConditionType) *IntegrationKitCondition {
 	for i := range in.Conditions {

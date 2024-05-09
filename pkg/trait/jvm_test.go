@@ -82,7 +82,7 @@ func TestConfigureJvmTraitInWrongJvmDisabled(t *testing.T) {
 		v1.IntegrationConditionTraitInfo,
 		corev1.ConditionTrue,
 		"TraitConfiguration",
-		"explicitly disabled by the user",
+		"explicitly disabled by the user; this configuration is deprecated and may be removed within next releases",
 	)
 	configured, condition, err := trait.Configure(environment)
 	require.NoError(t, err)
@@ -93,6 +93,7 @@ func TestConfigureJvmTraitInWrongJvmDisabled(t *testing.T) {
 
 func TestConfigureJvmTraitMissingExecutableJar(t *testing.T) {
 	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit.Status.Artifacts[0].ID = "this-must-fail"
 	environment.IntegrationKit.Status.Artifacts[0].Executable = false
 
 	configured, condition, err := trait.Configure(environment)
@@ -100,6 +101,203 @@ func TestConfigureJvmTraitMissingExecutableJar(t *testing.T) {
 	assert.Equal(t, "could not locate any executable among Integration Kit kit-name artifacts", err.Error())
 	assert.False(t, configured)
 	assert.Nil(t, condition)
+}
+
+func TestConfigureJvmTraitPreVersion2_3_x(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit.Status.Artifacts[0].Executable = false
+
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	environment.Resources.Add(&d)
+	configured, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configured)
+	assert.Nil(t, condition)
+
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"-cp",
+		fmt.Sprintf("./resources:%s:%s", crMountPath, rdMountPath),
+		"-jar", "dependencies/quarkus-run.jar",
+	}, d.Spec.Template.Spec.Containers[0].Args)
+}
+
+func TestConfigureJvmTraitExecutableSourcelessContainer(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit.Labels[v1.IntegrationKitTypeLabel] = v1.IntegrationKitTypeSynthetic
+
+	configured, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.False(t, configured)
+	assert.Equal(t,
+		"explicitly disabled by the platform: integration kit was not created via Camel K operator and the user did not provide the jar to execute",
+		condition.message,
+	)
+}
+
+func TestConfigureJvmTraitExecutableSourcelessContainerWithJar(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit.Labels[v1.IntegrationKitTypeLabel] = v1.IntegrationKitTypeSynthetic
+	trait.Jar = "my-path/to/my-app.jar"
+
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	environment.Resources.Add(&d)
+	configured, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configured)
+	assert.Nil(t, condition)
+
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"-cp",
+		fmt.Sprintf("./resources:%s:%s", crMountPath, rdMountPath),
+		"-jar", "my-path/to/my-app.jar",
+	}, d.Spec.Template.Spec.Containers[0].Args)
+}
+
+func TestConfigureJvmTraitExecutableSourcelessContainerWithJarAndOptions(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	environment.IntegrationKit.Labels[v1.IntegrationKitTypeLabel] = v1.IntegrationKitTypeSynthetic
+	trait.Jar = "my-path/to/my-app.jar"
+	// Add some additional JVM configurations
+	trait.Classpath = "deps/a.jar:deps/b.jar"
+	trait.Options = []string{
+		"-Xmx1234M",
+		"-Dmy-prop=abc",
+	}
+
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	environment.Resources.Add(&d)
+	configured, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configured)
+	assert.Nil(t, condition)
+
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"-Xmx1234M", "-Dmy-prop=abc",
+		"-cp", "./resources:/etc/camel/conf.d/_resources:/etc/camel/resources:deps/a.jar:deps/b.jar",
+		"-jar", "my-path/to/my-app.jar",
+	}, d.Spec.Template.Spec.Containers[0].Args)
+}
+
+func TestConfigureJvmTraitWithJar(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	trait.Jar = "my-path/to/my-app.jar"
+
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	environment.Resources.Add(&d)
+	configured, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configured)
+	assert.Nil(t, condition)
+
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"-cp",
+		fmt.Sprintf("./resources:%s:%s", crMountPath, rdMountPath),
+		"-jar", "my-path/to/my-app.jar",
+	}, d.Spec.Template.Spec.Containers[0].Args)
+}
+
+func TestConfigureJvmTraitWithJarAndConfigs(t *testing.T) {
+	trait, environment := createNominalJvmTest(v1.IntegrationKitTypePlatform)
+	trait.Jar = "my-path/to/my-app.jar"
+	// Add some additional JVM configurations
+	trait.Classpath = "deps/a.jar:deps/b.jar"
+	trait.Options = []string{
+		"-Xmx1234M",
+		"-Dmy-prop=abc",
+	}
+
+	d := appsv1.Deployment{
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: defaultContainerName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	environment.Resources.Add(&d)
+	configured, condition, err := trait.Configure(environment)
+	require.NoError(t, err)
+	assert.True(t, configured)
+	assert.Nil(t, condition)
+
+	err = trait.Apply(environment)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"-Xmx1234M", "-Dmy-prop=abc",
+		"-cp", "./resources:/etc/camel/conf.d/_resources:/etc/camel/resources:deps/a.jar:deps/b.jar",
+		"-jar", "my-path/to/my-app.jar",
+	}, d.Spec.Template.Spec.Containers[0].Args)
 }
 
 func TestConfigureJvmTraitInWrongIntegrationKitPhaseExternal(t *testing.T) {
@@ -110,7 +308,7 @@ func TestConfigureJvmTraitInWrongIntegrationKitPhaseExternal(t *testing.T) {
 		v1.IntegrationConditionTraitInfo,
 		corev1.ConditionTrue,
 		"TraitConfiguration",
-		"explicitly disabled by the platform: integration kit was not created via Camel K operator",
+		"explicitly disabled by the platform: integration kit was not created via Camel K operator and the user did not provide the jar to execute",
 	)
 	configured, condition, err := trait.Configure(environment)
 	require.NoError(t, err)

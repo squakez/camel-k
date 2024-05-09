@@ -65,8 +65,10 @@ func newJvmTrait() Trait {
 }
 
 func (t *jvmTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
+	// Deprecated: the JVM has to be a platform trait and the user should not be able to disable it
 	if !pointer.BoolDeref(t.Enabled, true) {
-		return false, NewIntegrationConditionUserDisabled("JVM"), nil
+		notice := userDisabledMessage + "; this configuration is deprecated and may be removed within next releases"
+		return false, NewIntegrationCondition("JVM", v1.IntegrationConditionTraitInfo, corev1.ConditionTrue, traitConfigurationReason, notice), nil
 	}
 	if !e.IntegrationKitInPhase(v1.IntegrationKitPhaseReady) || !e.IntegrationInRunningPhases() {
 		return false, nil, nil
@@ -79,20 +81,24 @@ func (t *jvmTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
 		}
 	}
 
-	if e.IntegrationKit != nil && e.IntegrationKit.IsSynthetic() {
-		return false, NewIntegrationConditionPlatformDisabledWithMessage("JVM", "integration kit was not created via Camel K operator"), nil
-	}
-
-	if e.CamelCatalog == nil {
-		return false, NewIntegrationConditionPlatformDisabledCatalogMissing(), nil
-	}
-
-	if t.Jar == "" && e.IntegrationKit != nil {
+	if t.Jar == "" && e.IntegrationKit != nil && !e.IntegrationKit.IsSynthetic() {
 		executableArtifact := e.IntegrationKit.GetExecutableArtifact()
+		// nolint: staticcheck
+		if executableArtifact == nil {
+			// TODO: this workaround is going to be supported until we support version 2.3.x
+			// this should be enough as we are still supporting only Camel Quarkus runtime in such versions
+			executableArtifact = e.IntegrationKit.GetArtifact("quarkus-run.jar")
+		}
 		if executableArtifact == nil {
 			return false, nil, fmt.Errorf("could not locate any executable among Integration Kit %s artifacts", e.IntegrationKit.Name)
 		}
 		t.Jar = executableArtifact.Target
+	}
+
+	if t.Jar == "" {
+		// We're likely running a Synthetic Integration Kit and the user did not provide any executable Jar
+		// We skip this trait since we cannot make any assumption on the container Java tooling running
+		return false, NewIntegrationConditionPlatformDisabledWithMessage("JVM", "integration kit was not created via Camel K operator and the user did not provide the jar to execute"), nil
 	}
 
 	return true, nil, nil
