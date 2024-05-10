@@ -55,6 +55,8 @@ func TestIntegrationPlatformDefaults(t *testing.T) {
 	assert.Equal(t, int32(3), ip.Status.Build.MaxRunningBuilds) // default for build strategy routine
 	assert.Len(t, ip.Status.Build.Maven.CLIOptions, 3)
 	assert.NotNil(t, ip.Status.Traits)
+	assert.Equal(t, v1.RuntimeProviderQuarkus, ip.Status.Build.RuntimeProvider)
+	assert.Equal(t, defaults.DefaultRuntimeVersion, ip.Status.Build.RuntimeVersion)
 }
 
 func TestApplyGlobalPlatformSpec(t *testing.T) {

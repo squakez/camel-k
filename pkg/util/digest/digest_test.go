@@ -148,3 +148,140 @@ func TestDigestMatchingTraitsUpdated(t *testing.T) {
 
 	assert.NotEqual(t, itSpecOnlyTraitUpdatedDigest, itDigest, "Digests must not be equal")
 }
+
+func TestDigestIntegration(t *testing.T) {
+	it := v1.Integration{
+		Spec: v1.IntegrationSpec{
+			Sources: []v1.SourceSpec{
+				{
+					DataSpec: v1.DataSpec{Content: "My source code here"},
+				},
+			},
+		},
+		Status: v1.IntegrationStatus{
+			RuntimeProvider: v1.RuntimeProviderQuarkus,
+			RuntimeVersion:  "1.2.3",
+			Version:         "7.8.9",
+		},
+	}
+
+	updatedIt := v1.Integration{
+		Spec: v1.IntegrationSpec{
+			Sources: []v1.SourceSpec{
+				{
+					DataSpec: v1.DataSpec{Content: "My source code here"},
+				},
+			},
+		},
+		Status: v1.IntegrationStatus{
+			RuntimeProvider: v1.RuntimeProviderQuarkus,
+			RuntimeVersion:  "1.2.3",
+			Version:         "7.8.9",
+		},
+	}
+
+	itDigest, err := ComputeForIntegration(&it, nil, nil)
+	require.NoError(t, err)
+	updatedItDigest, err := ComputeForIntegration(&updatedIt, nil, nil)
+	require.NoError(t, err)
+	assert.Equal(t, updatedItDigest, itDigest, "Digests must be equal")
+
+	updatedIt.Spec.Sources[0].DataSpec.Content = "My source code updated!"
+	updatedItDigest, err = ComputeForIntegration(&updatedIt, nil, nil)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedItDigest, itDigest, "Digests must be different on source content change")
+
+	updatedIt.Spec.Sources[0].DataSpec.Content = "My source code here"
+	updatedIt.Status.RuntimeVersion = "1.2.4"
+	updatedItDigest, err = ComputeForIntegration(&updatedIt, nil, nil)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedItDigest, itDigest, "Digests must be different on runtime version change")
+
+	updatedIt.Status.RuntimeProvider = v1.RuntimeProvider("a new provide")
+	updatedIt.Status.RuntimeVersion = "1.2.3"
+	updatedItDigest, err = ComputeForIntegration(&updatedIt, nil, nil)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedItDigest, itDigest, "Digests must be different on runtime provider change")
+
+	updatedIt.Status.RuntimeProvider = v1.RuntimeProviderQuarkus
+	updatedIt.Status.RuntimeVersion = "1.2.3"
+	updatedIt.Status.Version = "7.8.10"
+	updatedItDigest, err = ComputeForIntegration(&updatedIt, nil, nil)
+	require.NoError(t, err)
+	assert.Equal(t, updatedItDigest, itDigest, "Digests must be equal on operator version change")
+}
+
+func TestDigestIntegrationKit(t *testing.T) {
+	ik := v1.IntegrationKit{
+		Spec: v1.IntegrationKitSpec{
+			Image: "my-kit-image",
+			Dependencies: []string{
+				"my-dependency-a",
+				"my-dependency-b",
+			},
+		},
+		Status: v1.IntegrationKitStatus{
+			RuntimeProvider: v1.RuntimeProviderQuarkus,
+			RuntimeVersion:  "1.2.3",
+			Version:         "7.8.9",
+		},
+	}
+
+	updatedIk := v1.IntegrationKit{
+		Spec: v1.IntegrationKitSpec{
+			Image: "my-kit-image",
+			Dependencies: []string{
+				"my-dependency-a",
+				"my-dependency-b",
+			},
+		},
+		Status: v1.IntegrationKitStatus{
+			RuntimeProvider: v1.RuntimeProviderQuarkus,
+			RuntimeVersion:  "1.2.3",
+			Version:         "7.8.9",
+		},
+	}
+
+	ikDigest, err := ComputeForIntegrationKit(&ik)
+	require.NoError(t, err)
+	updatedIkDigest, err := ComputeForIntegrationKit(&updatedIk)
+	require.NoError(t, err)
+	assert.Equal(t, updatedIkDigest, ikDigest, "Digests must be equal")
+
+	updatedIk.Spec.Dependencies = []string{
+		"my-dependency-a",
+		"my-dependency-b",
+		"a-new-dependency",
+	}
+	updatedIkDigest, err = ComputeForIntegrationKit(&updatedIk)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedIkDigest, ikDigest, "Digests must be different on dependency changes")
+
+	updatedIk.Spec.Dependencies = []string{
+		"my-dependency-a",
+		"my-dependency-b",
+	}
+	updatedIk.Spec.Image = "my-new-image"
+	updatedIkDigest, err = ComputeForIntegrationKit(&updatedIk)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedIkDigest, ikDigest, "Digests must be different on image change")
+
+	updatedIk.Spec.Image = "my-kit-image"
+	updatedIk.Status.RuntimeVersion = "1.2.4"
+	updatedIkDigest, err = ComputeForIntegrationKit(&updatedIk)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedIkDigest, ikDigest, "Digests must be different on runtime version change")
+
+	updatedIk.Status.RuntimeProvider = v1.RuntimeProvider("a new provider")
+	updatedIk.Status.RuntimeVersion = "1.2.3"
+	updatedIkDigest, err = ComputeForIntegrationKit(&updatedIk)
+	require.NoError(t, err)
+	assert.NotEqual(t, updatedIkDigest, ikDigest, "Digests must be different on runtime provider change")
+
+	updatedIk.Status.RuntimeProvider = v1.RuntimeProviderQuarkus
+	updatedIk.Status.RuntimeVersion = "1.2.3"
+	updatedIk.Status.Version = "7.8.10"
+	updatedIkDigest, err = ComputeForIntegrationKit(&updatedIk)
+	require.NoError(t, err)
+	assert.Equal(t, updatedIkDigest, ikDigest, "Digests must be equal on operator version change")
+}

@@ -129,9 +129,9 @@ const ExpectedOSClusterRoles = 1
 
 var TestDefaultNamespace = "default"
 
-var TestTimeoutShort = 5 * time.Minute
-var TestTimeoutMedium = 20 * time.Minute
-var TestTimeoutLong = 30 * time.Minute
+var TestTimeoutShort = 1 * time.Minute
+var TestTimeoutMedium = 3 * time.Minute
+var TestTimeoutLong = 5 * time.Minute
 
 // TestTimeoutVeryLong should be used only for testing native builds.
 var TestTimeoutVeryLong = 60 * time.Minute
@@ -1371,18 +1371,10 @@ func KitWithPhase(phase v1.IntegrationKitPhase) KitFilter {
 	}
 }
 
-func KitWithVersion(version string) KitFilter {
+func KitWithRuntimeVersion(provider v1.RuntimeProvider, version string) KitFilter {
 	return &kitFilter{
 		filter: func(kit *v1.IntegrationKit) bool {
-			return kit.Status.Version == version
-		},
-	}
-}
-
-func KitWithVersionPrefix(versionPrefix string) KitFilter {
-	return &kitFilter{
-		filter: func(kit *v1.IntegrationKit) bool {
-			return strings.HasPrefix(kit.Status.Version, versionPrefix)
+			return kit.Status.RuntimeProvider == provider && kit.Status.RuntimeVersion == version
 		},
 	}
 }

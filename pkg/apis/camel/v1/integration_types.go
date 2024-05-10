@@ -112,6 +112,7 @@ type IntegrationStatus struct {
 	// a list of events happened for the Integration
 	Conditions []IntegrationCondition `json:"conditions,omitempty"`
 	// the operator version
+	// Deprecated: use RuntimeProvider/RuntimeVersion instead.
 	Version string `json:"version,omitempty"`
 	// the number of replicas
 	Replicas *int32 `json:"replicas,omitempty"`

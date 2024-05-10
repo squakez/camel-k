@@ -31,7 +31,6 @@ import (
 	"github.com/apache/camel-k/v2/pkg/platform"
 	"github.com/apache/camel-k/v2/pkg/trait"
 	"github.com/apache/camel-k/v2/pkg/util"
-	"github.com/apache/camel-k/v2/pkg/util/defaults"
 	"github.com/apache/camel-k/v2/pkg/util/log"
 )
 
@@ -150,10 +149,6 @@ func integrationMatches(ctx context.Context, c client.Client, integration *v1.In
 }
 
 func statusMatches(integration *v1.Integration, kit *v1.IntegrationKit, ilog *log.Logger) bool {
-	if kit.Status.Version != integration.Status.Version {
-		ilog.Debug("Integration and integration-kit versions do not match", "integration", integration.Name, "integration-kit", kit.Name, "namespace", integration.Namespace)
-		return false
-	}
 	if kit.Status.RuntimeProvider != integration.Status.RuntimeProvider {
 		ilog.Debug("Integration and integration-kit runtime providers do not match", "integration", integration.Name, "integration-kit", kit.Name, "namespace", integration.Namespace)
 		return false
@@ -171,14 +166,6 @@ func statusMatches(integration *v1.Integration, kit *v1.IntegrationKit, ilog *lo
 
 // kitMatches returns whether the kit matches with the existing target kit.
 func kitMatches(kit *v1.IntegrationKit, target *v1.IntegrationKit) (bool, error) {
-	version := kit.Status.Version
-	if version == "" {
-		// Defaults with the version that is going to be set during the kit initialization
-		version = defaults.Version
-	}
-	if version != target.Status.Version {
-		return false, nil
-	}
 	if len(kit.Spec.Dependencies) != len(target.Spec.Dependencies) {
 		return false, nil
 	}

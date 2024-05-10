@@ -48,8 +48,12 @@ const (
 // Produces a digest that can be used as docker image tag.
 func ComputeForIntegration(integration *v1.Integration, configmapVersions []string, secretVersions []string) (string, error) {
 	hash := sha256.New()
-	// Integration version is relevant
-	if _, err := hash.Write([]byte(integration.Status.Version)); err != nil {
+
+	// Runtime provider and version
+	if _, err := hash.Write([]byte(integration.Status.RuntimeProvider)); err != nil {
+		return "", err
+	}
+	if _, err := hash.Write([]byte(integration.Status.RuntimeVersion)); err != nil {
 		return "", err
 	}
 
@@ -226,8 +230,12 @@ func toMap(traits v1.Traits) (map[string]map[string]interface{}, error) {
 // Produces a digest that can be used as docker image tag.
 func ComputeForIntegrationKit(kit *v1.IntegrationKit) (string, error) {
 	hash := sha256.New()
-	// Kit version is relevant
-	if _, err := hash.Write([]byte(kit.Status.Version)); err != nil {
+
+	// Runtime provider and version
+	if _, err := hash.Write([]byte(kit.Status.RuntimeProvider)); err != nil {
+		return "", err
+	}
+	if _, err := hash.Write([]byte(kit.Status.RuntimeVersion)); err != nil {
 		return "", err
 	}
 

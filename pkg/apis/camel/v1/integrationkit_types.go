@@ -120,6 +120,7 @@ type IntegrationKitStatus struct {
 	// the platform for which this kit was configured
 	Platform string `json:"platform,omitempty"`
 	// the Camel K operator version for which this kit was configured
+	// Deprecated: use RuntimeProvider/RuntimeVersion instead.
 	Version string `json:"version,omitempty"`
 	// a list of conditions which happened for the events related the kit
 	Conditions []IntegrationKitCondition `json:"conditions,omitempty"`

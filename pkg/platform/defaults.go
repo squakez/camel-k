@@ -305,6 +305,10 @@ func setPlatformDefaults(p *v1.IntegrationPlatform, verbose bool) error {
 		log.Debugf("Integration Platform %s [%s]: setting publish strategy options", p.Name, p.Namespace)
 		p.Status.Build.PublishStrategyOptions = map[string]string{}
 	}
+	if p.Status.Build.RuntimeProvider == "" {
+		log.Debugf("Integration Platform %s [%s]: setting runtime provider", p.Name, p.Namespace)
+		p.Status.Build.RuntimeProvider = v1.RuntimeProviderQuarkus
+	}
 	if p.Status.Build.RuntimeVersion == "" {
 		log.Debugf("Integration Platform %s [%s]: setting runtime version", p.Name, p.Namespace)
 		p.Status.Build.RuntimeVersion = defaults.DefaultRuntimeVersion

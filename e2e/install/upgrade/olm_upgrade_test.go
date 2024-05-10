@@ -137,6 +137,10 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 		g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutShort).Should(Equal(v1.IntegrationPlatformPhaseReady))
 		g.Eventually(PlatformVersion(t, ctx, ns)).Should(ContainSubstring(prevIPVersionPrefix))
 		prevRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
+		prevRuntimeProvider := Platform(t, ctx, ns)().Status.Build.RuntimeProvider
+		if prevRuntimeProvider == "" {
+			prevRuntimeProvider = v1.RuntimeProviderQuarkus
+		}
 
 		name := "yaml"
 		g.Expect(Kamel(t, ctx, "run", "-n", ns, "files/yaml.yaml").Execute()).To(Succeed())
@@ -155,8 +159,9 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 		g.Eventually(IntegrationConditionStatus(t, ctx, ns, kbindName, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
 
 		// Check the Integration version matches that of the current operator
-		g.Expect(IntegrationRuntimeVersion(t, ctx, ns, name)()).To(ContainSubstring(prevRuntimeVersion))
-		g.Expect(IntegrationRuntimeVersion(t, ctx, ns, kbindName)()).To(ContainSubstring(prevRuntimeVersion))
+		g.Expect(IntegrationRuntimeProvider(t, ctx, ns, name)).To(Equal(prevRuntimeProvider))
+		g.Expect(IntegrationRuntimeVersion(t, ctx, ns, name)()).To(Equal(prevRuntimeVersion))
+		g.Expect(IntegrationRuntimeVersion(t, ctx, ns, kbindName)()).To(Equal(prevRuntimeVersion))
 
 		t.Run("OLM upgrade", func(t *testing.T) {
 			// Trigger Camel K operator upgrade by updating the CatalogSource with the new index image
@@ -201,6 +206,8 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 		})
 
 		t.Run("Integration upgrade", func(t *testing.T) {
+			newRuntimeProvider := Platform(t, ctx, ns)().Status.Build.RuntimeProvider
+			newRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
 			// Clear the KAMEL_BIN environment variable so that the current version is used from now on
 			g.Expect(os.Setenv("KAMEL_BIN", "")).To(Succeed())
 
@@ -220,26 +227,24 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 					Should(Equal(corev1.ConditionTrue))
 			}
 			// The new operator may change the original default runtime version/provider (if they changed in the new operator version)
-			newRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
-			g.Eventually(IntegrationRuntimeVersion(t, ctx, ns, name), TestTimeoutMedium).Should(ContainSubstring(newRuntimeVersion))
+			g.Eventually(IntegrationRuntimeProvider(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(newRuntimeProvider))
+			g.Eventually(IntegrationRuntimeVersion(t, ctx, ns, name)).Should(Equal(newRuntimeVersion))
 
 			// Check the Integration runs correctly
 			g.Eventually(IntegrationPodPhase(t, ctx, ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 			g.Eventually(IntegrationConditionStatus(t, ctx, ns, name, v1.IntegrationConditionReady), TestTimeoutMedium).
 				Should(Equal(corev1.ConditionTrue))
 
-			// Check the previous kit is not garbage collected (skip Build - present in case of respin)
-			prevCSVVersionMajorMinorPatch := fmt.Sprintf("%d.%d.%d",
-				prevCSVVersion.Version.Major, prevCSVVersion.Version.Minor, prevCSVVersion.Version.Patch)
-			g.Eventually(Kits(t, ctx, ns, KitWithVersion(prevCSVVersionMajorMinorPatch))).Should(HaveLen(2))
-			// Check a new kit is created with the current version
-			g.Eventually(Kits(t, ctx, ns, KitWithVersionPrefix(newIPVersionMajorMinorPatch))).Should(HaveLen(2))
+			// Check the previous kit is not garbage collected
+			g.Eventually(Kits(t, ctx, ns, KitWithRuntimeVersion(prevRuntimeProvider, prevRuntimeVersion))).Should(HaveLen(1))
+			// Check a new kit is created with the current version (if any new one is required)
+			g.Eventually(Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion))).Should(HaveLen(1))
 			// Check the new kit is ready
-			g.Eventually(Kits(t, ctx, ns, KitWithVersionPrefix(newIPVersionMajorMinorPatch), KitWithPhase(v1.IntegrationKitPhaseReady)),
-				TestTimeoutMedium).Should(HaveLen(2))
+			g.Eventually(Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion), KitWithPhase(v1.IntegrationKitPhaseReady)),
+				TestTimeoutMedium).Should(HaveLen(1))
 
-			kit := Kits(t, ctx, ns, KitWithVersionPrefix(newIPVersionMajorMinorPatch), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": name}))()[0]
-			kitKbind := Kits(t, ctx, ns, KitWithVersionPrefix(newIPVersionMajorMinorPatch), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": kbindName}))()[0]
+			kit := Kits(t, ctx, ns, Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion)), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": name}))()[0]
+			kitKbind := Kits(t, ctx, ns, Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion)), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": kbindName}))()[0]
 
 			// Check the Integration uses the new kit
 			g.Eventually(IntegrationKit(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(kit.Name))

@@ -113,7 +113,13 @@ func TestMonitorFailureIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// simulate a trait execution failure
-	it.Status.RuntimeVersion = "0.0.0"
+	it.Spec.Traits.Camel = &trait.CamelTrait{
+		RuntimeVersion: "0.0.0",
+	}
+	// we must recalculate the digest otherwise it would
+	// detect a drift
+	hash, _ := digest.ComputeForIntegration(it, nil, nil)
+	it.Status.Digest = hash
 
 	a := monitorAction{}
 	a.InjectLogger(log.Log)
@@ -122,10 +128,42 @@ func TestMonitorFailureIntegration(t *testing.T) {
 	assert.True(t, a.CanHandle(it))
 	handledIt, err := a.Handle(context.TODO(), it)
 	require.Error(t, err)
+	assert.Contains(t, err.Error(), "camel trait execution failed")
 	assert.Equal(t, v1.IntegrationPhaseError, handledIt.Status.Phase)
 	// Ready condition
 	assert.Equal(t, corev1.ConditionFalse, handledIt.Status.GetCondition(v1.IntegrationConditionReady).Status)
 	assert.Equal(t, v1.IntegrationConditionInitializationFailedReason, handledIt.Status.GetCondition(v1.IntegrationConditionReady).Reason)
+}
+
+func TestMonitorDetectDrift(t *testing.T) {
+	c, it, err := nominalEnvironment()
+	require.NoError(t, err)
+	// add a change that should not trigger the rebuild
+	it.Status.Version = "0.0.0"
+	originDigest := it.Status.Digest
+	a := monitorAction{}
+	a.InjectLogger(log.Log)
+	a.InjectClient(c)
+	assert.Equal(t, "monitor", a.Name())
+	assert.True(t, a.CanHandle(it))
+	handledIt, err := a.Handle(context.TODO(), it)
+	require.NoError(t, err)
+	assert.Equal(t, v1.IntegrationPhaseRunning, handledIt.Status.Phase)
+	assert.Equal(t, originDigest, handledIt.Status.Digest, "digest should be equal")
+
+	// add a change that should trigger the integration rebuild
+	it.Status.RuntimeVersion = "0.0.0"
+	originDigest = it.Status.Digest
+
+	a = monitorAction{}
+	a.InjectLogger(log.Log)
+	a.InjectClient(c)
+	assert.Equal(t, "monitor", a.Name())
+	assert.True(t, a.CanHandle(it))
+	handledIt, err = a.Handle(context.TODO(), it)
+	require.NoError(t, err)
+	assert.Equal(t, v1.IntegrationPhaseInitialization, handledIt.Status.Phase)
+	assert.NotEqual(t, originDigest, handledIt.Status.Digest, "digest should be different")
 }
 
 func nominalEnvironment() (client.Client, *v1.Integration, error) {
@@ -179,6 +217,9 @@ func nominalEnvironment() (client.Client, *v1.Integration, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "ns",
 			Name:      "my-it",
+		},
+		Spec: v1.IntegrationSpec{
+			Traits: v1.Traits{},
 		},
 		Status: v1.IntegrationStatus{
 			RuntimeVersion: defaults.DefaultRuntimeVersion,

@@ -81,7 +81,7 @@ func (t *camelTrait) Configure(e *Environment) (bool, *TraitCondition, error) {
 func (t *camelTrait) Apply(e *Environment) error {
 	if e.IntegrationKit != nil && e.IntegrationKit.IsSynthetic() {
 		// This is required as during init phase, the trait set by default these values
-		// which are widely used in the platform for different purposese.
+		// which are widely used in the platform for different purposes.
 		if e.Integration != nil {
 			e.Integration.Status.RuntimeVersion = ""
 			e.Integration.Status.RuntimeProvider = ""

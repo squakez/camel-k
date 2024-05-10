@@ -109,10 +109,10 @@ func TestCLIOperatorUpgrade(t *testing.T) {
 		var numberOfPods = func(pods *int32) bool {
 			return *pods == 1
 		}
-		g.Consistently(IntegrationPodsNumbers(t, ctx, ns, name), 60*time.Second, 1*time.Second).Should(Satisfy(numberOfPods))
+		g.Consistently(IntegrationPodsNumbers(t, ctx, ns, name), 1*time.Minute, 1*time.Second).Should(Satisfy(numberOfPods))
 		// The new operator must not change the original default runtime version/provider
-		g.Consistently(IntegrationRuntimeProvider(t, ctx, ns, name), 60*time.Second).Should(Equal(prevRuntimeProvider))
-		g.Consistently(IntegrationRuntimeVersion(t, ctx, ns, name), 60*time.Second).Should(Equal(prevRuntimeVersion))
+		g.Consistently(IntegrationRuntimeProvider(t, ctx, ns, name), 1*time.Minute).Should(Equal(prevRuntimeProvider))
+		g.Consistently(IntegrationRuntimeVersion(t, ctx, ns, name), 1*time.Minute).Should(Equal(prevRuntimeVersion))
 
 		// Force the Integration upgrade
 		g.Expect(Kamel(t, ctx, "rebuild", name, "-n", ns).Execute()).To(Succeed())
@@ -121,7 +121,7 @@ func TestCLIOperatorUpgrade(t *testing.T) {
 		g.Eventually(DefaultCamelCatalogPhase(t, ctx, ns), TestTimeoutMedium).Should(Equal(v1.CamelCatalogPhaseReady))
 		// Check the IntegrationPlatform has been reconciled
 		g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutShort).Should(Equal(v1.IntegrationPlatformPhaseReady))
-		g.Eventually(PlatformVersion(t, ctx, ns), TestTimeoutShort).Should(Equal(version))
+		g.Eventually(PlatformVersion(t, ctx, ns), TestTimeoutShort).Should(Equal(defaults.Version))
 		newRuntimeProvider := Platform(t, ctx, ns)().Status.Build.RuntimeProvider
 		newRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
 		// The new operator may change the original default runtime version/provider (if they changed in the new operator version)
@@ -129,14 +129,14 @@ func TestCLIOperatorUpgrade(t *testing.T) {
 		g.Eventually(IntegrationRuntimeVersion(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(newRuntimeVersion))
 
 		// Check the previous kit is not garbage collected
-		g.Eventually(Kits(t, ctx, ns, KitWithVersion(version))).Should(HaveLen(1))
-		// Check a new kit is created with the current version
-		g.Eventually(Kits(t, ctx, ns, KitWithVersion(defaults.Version))).Should(HaveLen(1))
+		g.Eventually(Kits(t, ctx, ns, KitWithRuntimeVersion(prevRuntimeProvider, prevRuntimeVersion))).Should(HaveLen(1))
+		// Check a new kit is created with the current version (if any new one is required)
+		g.Eventually(Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion))).Should(HaveLen(1))
 		// Check the new kit is ready
-		g.Eventually(Kits(t, ctx, ns, KitWithVersion(defaults.Version), KitWithPhase(v1.IntegrationKitPhaseReady)),
+		g.Eventually(Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion), KitWithPhase(v1.IntegrationKitPhaseReady)),
 			TestTimeoutMedium).Should(HaveLen(1))
 
-		kit := Kits(t, ctx, ns, KitWithVersion(defaults.Version))()[0]
+		kit := Kits(t, ctx, ns, KitWithRuntimeVersion(newRuntimeProvider, newRuntimeVersion))()[0]
 
 		// Check the Integration uses the new image
 		g.Eventually(IntegrationKit(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(kit.Name))
