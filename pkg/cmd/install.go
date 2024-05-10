@@ -523,6 +523,10 @@ func (o *installCmdOptions) setupIntegrationPlatform(c client.Client, namespace 
 	if o.RuntimeVersion != "" {
 		platform.Spec.Build.RuntimeVersion = o.RuntimeVersion
 	}
+	if o.RuntimeVersion != "" {
+		// the default one if none is specified
+		platform.Spec.Build.RuntimeProvider = v1.RuntimeProviderQuarkus
+	}
 	if o.BaseImage != "" {
 		platform.Spec.Build.BaseImage = o.BaseImage
 	}

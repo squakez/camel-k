@@ -72,7 +72,13 @@ func TestCLIOperatorUpgrade(t *testing.T) {
 		RefreshClient(t)
 
 		// Check the IntegrationPlatform has been reconciled
+		g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutMedium).Should(Equal(v1.IntegrationPlatformPhaseReady))
 		g.Eventually(PlatformVersion(t, ctx, ns), TestTimeoutMedium).Should(Equal(version))
+		prevRuntimeProvider := Platform(t, ctx, ns)().Status.Build.RuntimeProvider
+		if prevRuntimeProvider == "" {
+			prevRuntimeProvider = v1.RuntimeProviderQuarkus
+		}
+		prevRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
 
 		// Run the Integration
 		name := RandomizedSuffixName("yaml")
@@ -81,7 +87,8 @@ func TestCLIOperatorUpgrade(t *testing.T) {
 		g.Eventually(IntegrationConditionStatus(t, ctx, ns, name, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
 
 		// Check the Integration version
-		g.Eventually(IntegrationVersion(t, ctx, ns, name)).Should(Equal(version))
+		g.Eventually(IntegrationRuntimeProvider(t, ctx, ns, name)).Should(Equal(prevRuntimeProvider))
+		g.Eventually(IntegrationRuntimeVersion(t, ctx, ns, name)).Should(Equal(prevRuntimeVersion))
 
 		// Clear the KAMEL_BIN environment variable so that the current version is used from now on
 		g.Expect(os.Setenv("KAMEL_BIN", "")).To(Succeed())
@@ -97,16 +104,29 @@ func TestCLIOperatorUpgrade(t *testing.T) {
 		g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutMedium).Should(Equal(v1.IntegrationPlatformPhaseReady))
 		g.Eventually(PlatformVersion(t, ctx, ns), TestTimeoutMedium).Should(Equal(defaults.Version))
 
-		// Check the Integration hasn't been upgraded
-		g.Consistently(IntegrationVersion(t, ctx, ns, name), 5*time.Second, 1*time.Second).Should(Equal(version))
+		// Check the Integration Pod is not rolling a new Pod automatically
+		// This is extremely important as we don't want an upgrade to restart any Integration, unless specified by the user
+		var numberOfPods = func(pods *int32) bool {
+			return *pods == 1
+		}
+		g.Consistently(IntegrationPodsNumbers(t, ctx, ns, name), 60*time.Second, 1*time.Second).Should(Satisfy(numberOfPods))
+		// The new operator must not change the original default runtime version/provider
+		g.Consistently(IntegrationRuntimeProvider(t, ctx, ns, name), 60*time.Second).Should(Equal(prevRuntimeProvider))
+		g.Consistently(IntegrationRuntimeVersion(t, ctx, ns, name), 60*time.Second).Should(Equal(prevRuntimeVersion))
 
 		// Force the Integration upgrade
 		g.Expect(Kamel(t, ctx, "rebuild", name, "-n", ns).Execute()).To(Succeed())
 
 		// A catalog should be created with the new configuration
 		g.Eventually(DefaultCamelCatalogPhase(t, ctx, ns), TestTimeoutMedium).Should(Equal(v1.CamelCatalogPhaseReady))
-		// Check the Integration version has been upgraded
-		g.Eventually(IntegrationVersion(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(defaults.Version))
+		// Check the IntegrationPlatform has been reconciled
+		g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutShort).Should(Equal(v1.IntegrationPlatformPhaseReady))
+		g.Eventually(PlatformVersion(t, ctx, ns), TestTimeoutShort).Should(Equal(version))
+		newRuntimeProvider := Platform(t, ctx, ns)().Status.Build.RuntimeProvider
+		newRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
+		// The new operator may change the original default runtime version/provider (if they changed in the new operator version)
+		g.Eventually(IntegrationRuntimeProvider(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(newRuntimeProvider))
+		g.Eventually(IntegrationRuntimeVersion(t, ctx, ns, name), TestTimeoutMedium).Should(Equal(newRuntimeVersion))
 
 		// Check the previous kit is not garbage collected
 		g.Eventually(Kits(t, ctx, ns, KitWithVersion(version))).Should(HaveLen(1))

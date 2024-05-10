@@ -93,7 +93,7 @@ func (action *monitorAction) Handle(ctx context.Context, platform *v1.Integratio
 		// Camel catalog condition
 		runtimeSpec := v1.RuntimeSpec{
 			Version:  platform.Status.Build.RuntimeVersion,
-			Provider: v1.RuntimeProviderQuarkus,
+			Provider: platform.Status.Build.RuntimeProvider,
 		}
 		if catalog, err := camel.LoadCatalog(ctx, action.client, platform.Namespace, runtimeSpec); err != nil {
 			action.L.Error(err, "IntegrationPlatform unable to load Camel catalog",

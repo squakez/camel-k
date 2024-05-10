@@ -232,6 +232,10 @@ func applyPlatformSpec(source *v1.IntegrationPlatform, target *v1.IntegrationPla
 		log.Debugf("Integration Platform %s [%s]: setting runtime version", target.Name, target.Namespace)
 		target.Status.Build.RuntimeVersion = source.Status.Build.RuntimeVersion
 	}
+	if target.Status.Build.RuntimeProvider == "" {
+		log.Debugf("Integration Platform %s [%s]: setting runtime provider", target.Name, target.Namespace)
+		target.Status.Build.RuntimeProvider = source.Status.Build.RuntimeProvider
+	}
 	if target.Status.Build.BaseImage == "" {
 		log.Debugf("Integration Platform %s [%s]: setting base image", target.Name, target.Namespace)
 		target.Status.Build.BaseImage = source.Status.Build.BaseImage

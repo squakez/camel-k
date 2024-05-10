@@ -144,6 +144,7 @@ func operatorInfo(ctx context.Context, c client.Client, namespace string) (map[s
 	infos["Name"] = platform.Name
 	infos["Version"] = platform.Status.Version
 	infos["Publish strategy"] = string(platform.Status.Build.PublishStrategy)
+	infos["Runtime provider"] = string(platform.Status.Build.RuntimeProvider)
 	infos["Runtime version"] = platform.Status.Build.RuntimeVersion
 	infos["Registry address"] = platform.Status.Build.Registry.Address
 	infos["Git commit"] = platform.Status.Info["gitCommit"]

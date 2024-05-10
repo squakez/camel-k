@@ -55,7 +55,7 @@ func TestTraitUpdates(t *testing.T) {
 			}
 			// Adding a property will change the camel trait
 			g.Expect(KamelRunWithID(t, ctx, operatorID, ns, "files/yaml.yaml", "--name", name, "-p", "hello=world").Execute()).To(Succeed())
-			g.Consistently(IntegrationPodsNumbers(t, ctx, ns, name), TestTimeoutShort, 1*time.Second).Should(Satisfy(numberOfPods))
+			g.Consistently(IntegrationPodsNumbers(t, ctx, ns, name), 60*time.Second, 1*time.Second).Should(Satisfy(numberOfPods))
 		})
 
 		g.Expect(Kamel(t, ctx, "delete", "--all", "-n", ns).Execute()).To(Succeed())

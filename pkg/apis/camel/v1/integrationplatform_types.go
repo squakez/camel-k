@@ -115,9 +115,9 @@ type IntegrationPlatformBuildSpec struct {
 	BuildConfiguration BuildConfiguration `json:"buildConfiguration,omitempty"`
 	// the strategy to adopt for publishing an Integration container image
 	PublishStrategy IntegrationPlatformBuildPublishStrategy `json:"publishStrategy,omitempty"`
-	// the Camel K Runtime dependency version
+	// the runtime version
 	RuntimeVersion string `json:"runtimeVersion,omitempty"`
-	// the runtime used. Likely Camel Quarkus (we used to have main runtime which has been discontinued since version 1.5)
+	// the runtime provider
 	RuntimeProvider RuntimeProvider `json:"runtimeProvider,omitempty"`
 	// a base image that can be used as base layer for all images.
 	// It can be useful if you want to provide some custom base image with further utility software

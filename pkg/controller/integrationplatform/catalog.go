@@ -48,7 +48,7 @@ func (action *catalogAction) Handle(ctx context.Context, platform *v1.Integratio
 	// New runtime version set - check that catalog exists and create it if it does not exist
 	runtimeSpec := v1.RuntimeSpec{
 		Version:  platform.Status.Build.RuntimeVersion,
-		Provider: v1.RuntimeProviderQuarkus,
+		Provider: platform.Status.Build.RuntimeProvider,
 	}
 
 	if catalog, err := camel.LoadCatalog(ctx, action.client, platform.Namespace, runtimeSpec); err != nil {

@@ -134,7 +134,9 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 		g.Eventually(OperatorPodPhase(t, ctx, ns), TestTimeoutMedium).Should(Equal(corev1.PodRunning))
 
 		// Check the IntegrationPlatform has been reconciled
+		g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutShort).Should(Equal(v1.IntegrationPlatformPhaseReady))
 		g.Eventually(PlatformVersion(t, ctx, ns)).Should(ContainSubstring(prevIPVersionPrefix))
+		prevRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
 
 		name := "yaml"
 		g.Expect(Kamel(t, ctx, "run", "-n", ns, "files/yaml.yaml").Execute()).To(Succeed())
@@ -153,8 +155,8 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 		g.Eventually(IntegrationConditionStatus(t, ctx, ns, kbindName, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
 
 		// Check the Integration version matches that of the current operator
-		g.Expect(IntegrationVersion(t, ctx, ns, name)()).To(ContainSubstring(prevIPVersionPrefix))
-		g.Expect(IntegrationVersion(t, ctx, ns, kbindName)()).To(ContainSubstring(prevIPVersionPrefix))
+		g.Expect(IntegrationRuntimeVersion(t, ctx, ns, name)()).To(ContainSubstring(prevRuntimeVersion))
+		g.Expect(IntegrationRuntimeVersion(t, ctx, ns, kbindName)()).To(ContainSubstring(prevRuntimeVersion))
 
 		t.Run("OLM upgrade", func(t *testing.T) {
 			// Trigger Camel K operator upgrade by updating the CatalogSource with the new index image
@@ -194,6 +196,7 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 			g.Eventually(OperatorImage(t, ctx, ns), TestTimeoutShort).Should(Equal(defaults.OperatorImage()))
 
 			// Check the IntegrationPlatform has been reconciled
+			g.Eventually(PlatformPhase(t, ctx, ns), TestTimeoutMedium).Should(Equal(v1.IntegrationPlatformPhaseReady))
 			g.Eventually(PlatformVersion(t, ctx, ns)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
 		})
 
@@ -201,9 +204,14 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 			// Clear the KAMEL_BIN environment variable so that the current version is used from now on
 			g.Expect(os.Setenv("KAMEL_BIN", "")).To(Succeed())
 
-			// Check the Integration hasn't been upgraded
-			g.Consistently(IntegrationVersion(t, ctx, ns, name), 5*time.Second, 1*time.Second).
-				Should(ContainSubstring(prevIPVersionPrefix))
+			// Check the Integration Pod is not rolling a new Pod automatically
+			// This is very important as we don't want an upgrade to restart any Integration, unless specified by the user
+			var numberOfPods = func(pods *int32) bool {
+				return *pods == 1
+			}
+			g.Consistently(IntegrationPodsNumbers(t, ctx, ns, name), 120*time.Second, 1*time.Second).Should(Satisfy(numberOfPods))
+			// The new operator must not change the original default runtime version/provider
+			g.Consistently(IntegrationRuntimeVersion(t, ctx, ns, name), 60*time.Second).Should(ContainSubstring(prevRuntimeVersion))
 
 			// Rebuild the Integration
 			g.Expect(Kamel(t, ctx, "rebuild", "--all", "-n", ns).Execute()).To(Succeed())
@@ -211,15 +219,14 @@ func TestOLMOperatorUpgrade(t *testing.T) {
 				g.Eventually(PipeConditionStatus(t, ctx, ns, kbindName, v1.PipeConditionReady), TestTimeoutMedium).
 					Should(Equal(corev1.ConditionTrue))
 			}
+			// The new operator may change the original default runtime version/provider (if they changed in the new operator version)
+			newRuntimeVersion := Platform(t, ctx, ns)().Status.Build.RuntimeVersion
+			g.Eventually(IntegrationRuntimeVersion(t, ctx, ns, name), TestTimeoutMedium).Should(ContainSubstring(newRuntimeVersion))
 
 			// Check the Integration runs correctly
 			g.Eventually(IntegrationPodPhase(t, ctx, ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 			g.Eventually(IntegrationConditionStatus(t, ctx, ns, name, v1.IntegrationConditionReady), TestTimeoutMedium).
 				Should(Equal(corev1.ConditionTrue))
-
-			// Check the Integration version has been upgraded
-			g.Eventually(IntegrationVersion(t, ctx, ns, name)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
-			g.Eventually(IntegrationVersion(t, ctx, ns, kbindName)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
 
 			// Check the previous kit is not garbage collected (skip Build - present in case of respin)
 			prevCSVVersionMajorMinorPatch := fmt.Sprintf("%d.%d.%d",

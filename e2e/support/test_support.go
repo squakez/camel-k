@@ -1058,13 +1058,26 @@ func UnstructuredObject(t *testing.T, ctx context.Context, ns string, name strin
 	}
 }
 
-func IntegrationVersion(t *testing.T, ctx context.Context, ns string, name string) func() string {
+func IntegrationRuntimeProvider(t *testing.T, ctx context.Context, ns string, name string) func() v1.RuntimeProvider {
+	return func() v1.RuntimeProvider {
+		it := Integration(t, ctx, ns, name)()
+		if it == nil {
+			return ""
+		}
+		if string(it.Status.RuntimeProvider) == "" {
+			return v1.RuntimeProviderQuarkus
+		}
+		return it.Status.RuntimeProvider
+	}
+}
+
+func IntegrationRuntimeVersion(t *testing.T, ctx context.Context, ns string, name string) func() string {
 	return func() string {
 		it := Integration(t, ctx, ns, name)()
 		if it == nil {
 			return ""
 		}
-		return it.Status.Version
+		return it.Status.RuntimeVersion
 	}
 }
 
