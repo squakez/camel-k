@@ -168,16 +168,48 @@ func (t *jvmTrait) Apply(e *Environment) error {
 		args = append(args, httpProxyArgs...)
 	}
 
+	// TODO: this is a workaround which we should remove once (if) JooR allow
+	// fa(s)t-jar execution: https://github.com/jOOQ/jOOR/issues/69
+	javaJoorSource := hasDSLSources(e.Integration.AllSources(), v1.LanguageJavaSource)
+	// TODO: this is a workaround which we should remove once we have Quarkus runtime >= 3.8.4
+	// https://github.com/quarkusio/quarkus/issues/39833
+	jsSource := hasDSLSources(e.Integration.AllSources(), v1.LanguageJavaScript)
+
 	// Will execute on the container something like
 	// java -Dxyx ... -cp ... -jar my-app.jar
 	// For this reason it's imporant that the container is a java based container able to run a Camel (hence Java) application
 	container.Command = []string{"java"}
 	classpathItems := t.prepareClasspathItems(container)
 	if classpathItems != nil {
+		if javaJoorSource || jsSource {
+			if javaJoorSource {
+				classpathItems = append(
+					classpathItems,
+					fmt.Sprintf("%s/lib/main/*", builder.DependenciesDir),
+					t.Jar,
+				)
+			} else if jsSource {
+				classpathItems = append(
+					classpathItems,
+					fmt.Sprintf("%s/lib/main/*", builder.DependenciesDir),
+					fmt.Sprintf("%s/lib/boot/*", builder.DependenciesDir),
+					t.Jar,
+				)
+			}
+		}
 		args = append(args, "-cp", strings.Join(classpathItems, ":"))
 	}
 	container.WorkingDir = builder.DeploymentDir
-	args = append(args, "-jar", t.Jar)
+
+	if javaJoorSource || jsSource {
+		// The catalog runtime has to provide this configuration.
+		if e.CamelCatalog == nil {
+			return fmt.Errorf("cannot execute trait: missing Camel catalog")
+		}
+		args = append(args, e.CamelCatalog.Runtime.ApplicationClass)
+	} else {
+		args = append(args, "-jar", t.Jar)
+	}
 	container.Args = args
 
 	return nil
@@ -276,4 +308,20 @@ func (t *jvmTrait) prepareHTTPProxy(container *corev1.Container) ([]string, erro
 	}
 
 	return args, nil
+}
+
+// hasDSLSources returns true if the sources have a given DSL. This is always returning false
+// for "sourceless" Integrations which have no sources attached.
+func hasDSLSources(sources []v1.SourceSpec, dsl v1.Language) bool {
+	for _, s := range sources {
+		lang := s.Language
+		if lang == "" {
+			lang = s.InferLanguage()
+		}
+		if lang == dsl {
+			return true
+		}
+	}
+
+	return false
 }

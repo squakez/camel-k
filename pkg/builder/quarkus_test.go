@@ -296,7 +296,6 @@ func TestBuildQuarkusRunner(t *testing.T) {
 	assert.Contains(t, string(appProps), "camel.hello=world\n")
 	assert.Contains(t, string(appProps), "quarkus.banner.enabled=false\n")
 	assert.Contains(t, string(appProps), "quarkus.camel.service.discovery.include-patterns=META-INF/services/org/apache/camel/datatype/converter/*,META-INF/services/org/apache/camel/datatype/transformer/*,META-INF/services/org/apache/camel/transformer/*\n")
-	assert.Contains(t, string(appProps), "quarkus.class-loading.parent-first-artifacts=org.graalvm.regex:regex\n")
 	// At this stage a maven project should have been executed. Verify the package was created.
 	_, err = os.Stat(filepath.Join(tmpDir, "maven", "target", "camel-k-integration-"+defaults.Version+".jar"))
 	require.NoError(t, err)

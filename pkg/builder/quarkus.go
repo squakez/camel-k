@@ -249,8 +249,6 @@ func computeApplicationProperties(appPropertiesPath string, applicationPropertie
 	// required for to resolve data type transformers at runtime with service discovery
 	// the different Camel runtimes use different resource paths for the service lookup
 	applicationProperties["quarkus.camel.service.discovery.include-patterns"] = "META-INF/services/org/apache/camel/datatype/converter/*,META-INF/services/org/apache/camel/datatype/transformer/*,META-INF/services/org/apache/camel/transformer/*"
-	// Workaround to prevent JS runtime errors, see https://github.com/apache/camel-quarkus/issues/5678
-	applicationProperties["quarkus.class-loading.parent-first-artifacts"] = "org.graalvm.regex:regex"
 	defer f.Close()
 	// Add a new line if the file is already containing some value
 	if fstat.Size() > 0 {

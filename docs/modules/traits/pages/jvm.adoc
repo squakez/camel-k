@@ -66,6 +66,8 @@ Deprecated: no longer in use.
 
 The `jar` parameter is auto populated with the executable dependency provided by the given Camel runtime. Generally it is something the user should not worry about, unless that, for any reason, he wants to specify which is the dependency to use. Mind that, in order to do that, the base image used to build the container require a java binary executable from path (ie, `/usr/bin/java`).
 
+NOTE: the container command used to execute the Camel application may vary depending on the DSL used. When using certain DSL you may notice the direct execution of a fa(s)t-jar. When running Java DSL you may instead notice the execution of a class and the explicit setting of the classpath (due to certain JooR limitations).
+
 This parameters enables also the possibility to use the trait when running a synthetic IntegrationKit (ie, "sourceless" Integrations). In such circumstances, the user can run a Camel application built externally and make use of the trait configuration as well as for example:
 
 [source,console]
