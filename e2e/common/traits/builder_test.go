@@ -47,9 +47,13 @@ func TestBuilderTrait(t *testing.T) {
 
 		g.Eventually(SelectedPlatformPhase(t, ctx, ns, operatorID), TestTimeoutMedium).Should(Equal(v1.IntegrationPlatformPhaseReady))
 
-		t.Run("Run build strategy routine", func(t *testing.T) {
-			name := RandomizedSuffixName("java")
-			g.Expect(KamelRunWithID(t, ctx, operatorID, ns, "files/Java.java", "--name", name, "-t", "builder.order-strategy=sequential", "-t", "builder.strategy=routine").Execute()).To(Succeed())
+		t.Run("Run build order strategy sequential", func(t *testing.T) {
+			name := RandomizedSuffixName("java-dependencies-sequential")
+			g.Expect(KamelRunWithID(t, ctx, operatorID, ns, "files/Java.java", "--name", name,
+				// This is required in order to avoid reusing a Kit already existing (which is the default behavior)
+				"--build-property", "strategy=sequential",
+				"-t", "builder.order-strategy=sequential",
+			).Execute()).To(Succeed())
 
 			g.Eventually(IntegrationPodPhase(t, ctx, ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 			g.Eventually(IntegrationConditionStatus(t, ctx, ns, name, v1.IntegrationConditionReady), TestTimeoutShort).Should(Equal(corev1.ConditionTrue))
@@ -148,7 +152,6 @@ func TestBuilderTrait(t *testing.T) {
 			builderKitName := fmt.Sprintf("camel-k-%s-builder", integrationKitName)
 
 			g.Eventually(BuildConfig(t, ctx, integrationKitNamespace, integrationKitName)().Strategy, TestTimeoutShort).Should(Equal(v1.BuildStrategyPod))
-			g.Eventually(BuildConfig(t, ctx, integrationKitNamespace, integrationKitName)().OrderStrategy, TestTimeoutShort).Should(Equal(v1.BuildOrderStrategySequential))
 			g.Eventually(BuildConfig(t, ctx, integrationKitNamespace, integrationKitName)().RequestCPU, TestTimeoutShort).Should(Equal("500m"))
 			g.Eventually(BuildConfig(t, ctx, integrationKitNamespace, integrationKitName)().LimitCPU, TestTimeoutShort).Should(Equal("1000m"))
 			g.Eventually(BuildConfig(t, ctx, integrationKitNamespace, integrationKitName)().RequestMemory, TestTimeoutShort).Should(Equal("2Gi"))
