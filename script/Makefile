@@ -440,12 +440,14 @@ endif
 
 DOCKER_TAG := $(CUSTOM_IMAGE):$(CUSTOM_VERSION)-$(IMAGE_ARCH)
 
-images: build maven-overlay bundle-kamelets image-build build-kamel-platform
-
-image-build:
+image-bundle: build maven-overlay bundle-kamelets
 ifneq (,$(findstring SNAPSHOT,$(DEFAULT_RUNTIME_VERSION)))
 	./script/package_maven_artifacts.sh -s "$(STAGING_RUNTIME_REPO)" -d "$(CAMEL_K_RUNTIME_DIR)" $(DEFAULT_RUNTIME_VERSION)
 endif
+
+images: image-bundle image-build build-kamel-platform
+
+image-build:
 	@echo "####### Building Camel K operator arch $(IMAGE_ARCH) container image..."
 	mkdir -p build/_maven_output
 	docker buildx build --target $(TARGET_STAGE) --platform=linux/$(IMAGE_ARCH) --build-arg IMAGE_ARCH=$(IMAGE_ARCH) --load -t $(DOCKER_TAG) -f build/Dockerfile .

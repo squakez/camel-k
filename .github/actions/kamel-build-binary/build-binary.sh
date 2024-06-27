@@ -87,9 +87,13 @@ if [ -n "${DEBUG_USE_EXISTING_IMAGE}" ] && [ -n "${CUSTOM_IMAGE}" ]; then
   docker push ${CUSTOM_IMAGE}:$(make get-version)
 else
 
-  echo "Build Kamel from source"
+  # TODO we may include here a check and build from source
+  # if the artifact is not available. For instance
+  # this would enable running the action individually
+  echo "Extract Camel K Operator artifact"
+  tar -xvf build.tar
 
-  RULES="PACKAGE_ARTIFACTS_STRATEGY=download build images"
+  RULES="image-build"
   if [ -n "${MAKE_RULES}" ]; then
     RULES=" ${MAKE_RULES} "
   fi
