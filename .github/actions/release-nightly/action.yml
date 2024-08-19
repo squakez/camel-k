@@ -95,8 +95,7 @@ runs:
     - name: Build and release containers
       shell: bash
       run: |
-        make VERSION=${{ env.VERSION }} IMAGE_NAME=${{ env.IMAGE_NAME }} images-nightly
-        make VERSION=${{ env.VERSION }} IMAGE_NAME=${{ env.IMAGE_NAME }} release-nightly
+        make VERSION=${{ env.VERSION }} IMAGE_NAME=${{ env.IMAGE_NAME }} bump images-nightly release-nightly
 
     - name: Generate SBOM
       uses: ./.github/actions/gh-go-mod-generate-sbom
