@@ -182,6 +182,11 @@ func (c *CamelCatalogSpec) GetRuntimeVersion() string {
 	return c.Runtime.Version
 }
 
+// GetRuntimeVersion returns the Camel K runtime version of the catalog.
+func (c *CamelCatalogSpec) GetRuntimeProvider() RuntimeProvider {
+	return c.Runtime.Provider
+}
+
 // GetCamelVersion returns the Camel version the runtime is based on.
 func (c *CamelCatalogSpec) GetCamelVersion() string {
 	return c.Runtime.Metadata["camel.version"]
@@ -221,8 +226,11 @@ func (c *CamelCatalogSpec) HasCapability(capability string) bool {
 
 // GetDependencyID returns a Camel K recognizable maven dependency for the artifact.
 func (in *CamelArtifact) GetDependencyID() string {
+	CHECK HERE
+
 	switch {
-	case in.GroupID == "org.apache.camel.quarkus" && strings.HasPrefix(in.ArtifactID, "camel-quarkus-"):
+	case in.GroupID == "org.apache.camel.quarkus" &&
+		strings.HasPrefix(in.ArtifactID, "camel-quarkus-") && in.ArtifactID != "camel-quarkus-core":
 		return "camel:" + in.ArtifactID[14:]
 	case in.Version == "":
 		return "mvn:" + in.GroupID + ":" + in.ArtifactID
