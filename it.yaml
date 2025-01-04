@@ -1,0 +1,19 @@
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: it
+spec:
+  configuration:
+  - type: property
+    value: camel.kamelet.my-err-source.source.message = hello
+  flows:
+  - route:
+      errorHandler:
+        deadLetterChannel:
+          deadLetterUri: log:err
+      from:
+        steps:
+        - to: kamelet:log-sink/sink
+        uri: kamelet:my-err-source/source
+      id: binding
+

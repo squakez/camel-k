@@ -127,14 +127,20 @@ func translateCamelErrorHandler(b *bindings.Binding) map[string]interface{} {
 	yamlCode := map[string]interface{}{}
 
 	if b.URI == "" {
-		yamlCode["noErrorHandler"] = map[string]interface{}{}
+		yamlCode["errorHandler"] = map[string]interface{}{
+			"noErrorHandler": map[string]interface{}{},
+		}
 	} else if b.URI == defaultCamelErrorHandler {
-		yamlCode["defaultErrorHandler"] = map[string]interface{}{
-			"logName": "err",
+		yamlCode["errorHandler"] = map[string]interface{}{
+			"defaultErrorHandler": map[string]interface{}{
+				"logName": "err",
+			},
 		}
 	} else {
-		yamlCode["deadLetterChannel"] = map[string]interface{}{
-			"deadLetterUri": b.URI,
+		yamlCode["errorHandler"] = map[string]interface{}{
+			"deadLetterChannel": map[string]interface{}{
+				"deadLetterUri": b.URI,
+			},
 		}
 	}
 

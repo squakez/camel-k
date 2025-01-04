@@ -1,0 +1,20 @@
+- errorHandler:
+    deadLetterChannel:
+      deadLetterUri: kamelet:log-sink/errorHandler
+
+# - errorHandler:
+#     defaultErrorHandler:
+#       logName: err
+
+# - errorHandler:
+#     noErrorHandler: {}
+- route:
+    # errorHandler:
+    #   deadLetterChannel:
+    #     deadLetterUri: kamelet:log-sink/errorHandler
+    from:
+      uri: "kamelet:my-err-source/source"
+      parameters:
+        message: "hello"
+      steps:
+        - log: "${body}"

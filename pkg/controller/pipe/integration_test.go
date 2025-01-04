@@ -73,10 +73,10 @@ func TestCreateIntegrationForPipeWithSinkKameletErrorHandler(t *testing.T) {
 	dsl, err := v1.ToYamlDSL(it.Spec.Flows)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`- route:
-    errorHandler:
-      deadLetterChannel:
-        deadLetterUri: kamelet:my-err/errorHandler
+		`- errorHandler:
+    deadLetterChannel:
+      deadLetterUri: kamelet:my-err/errorHandler
+- route:
     from:
       steps:
       - to: kamelet:my-sink/sink
@@ -105,10 +105,10 @@ func TestCreateIntegrationForPipeWithSinkErrorHandler(t *testing.T) {
 	dsl, err := v1.ToYamlDSL(it.Spec.Flows)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`- route:
-    errorHandler:
-      deadLetterChannel:
-        deadLetterUri: someUri
+		`- errorHandler:
+    deadLetterChannel:
+      deadLetterUri: someUri
+- route:
     from:
       steps:
       - to: kamelet:my-sink/sink
@@ -137,10 +137,10 @@ func TestCreateIntegrationForPipeWithLogErrorHandler(t *testing.T) {
 	dsl, err := v1.ToYamlDSL(it.Spec.Flows)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`- route:
-    errorHandler:
-      defaultErrorHandler:
-        logName: err
+		`- errorHandler:
+    defaultErrorHandler:
+      logName: err
+- route:
     from:
       steps:
       - to: kamelet:my-sink/sink
@@ -169,9 +169,9 @@ func TestCreateIntegrationForPipeWithNoneErrorHandler(t *testing.T) {
 	dsl, err := v1.ToYamlDSL(it.Spec.Flows)
 	require.NoError(t, err)
 	assert.Equal(t,
-		`- route:
-    errorHandler:
-      noErrorHandler: {}
+		`- errorHandler:
+    noErrorHandler: {}
+- route:
     from:
       steps:
       - to: kamelet:my-sink/sink

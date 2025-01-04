@@ -47,6 +47,7 @@ const (
 
 	contentKey                  = "content"
 	KameletLocationProperty     = "camel.component.kamelet.location"
+	KameletErrorHandler         = "camel.component.kamelet.no-error-handler"
 	kameletMountPointAnnotation = "camel.apache.org/kamelet.mount-point"
 )
 
@@ -222,6 +223,8 @@ func (t *kameletsTrait) addKamelets(e *Environment) error {
 		}
 	}
 	e.ApplicationProperties[KameletLocationProperty] += ",classpath:/kamelets"
+	// required because of https://issues.apache.org/jira/browse/CAMEL-21599
+	e.ApplicationProperties[KameletErrorHandler] = "false"
 	// resort dependencies
 	sort.Strings(e.Integration.Status.Dependencies)
 
