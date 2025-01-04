@@ -77,6 +77,18 @@ func (i XMLInspector) Extract(source v1.SourceSpec, meta *Metadata) error {
 						}
 					}
 				}
+			case "deadLetterChannel":
+				for _, a := range se.Attr {
+					if a.Name.Local == "deadLetterUri" {
+						_, scheme := i.catalog.DecodeComponent(a.Value)
+						if dfDep := i.catalog.GetArtifactByScheme(scheme.ID); dfDep != nil {
+							meta.AddDependency(dfDep.GetDependencyID())
+						}
+						if scheme.ID == "kamelet" {
+							AddKamelet(meta, a.Value)
+						}
+					}
+				}
 			case "from", "fromF":
 				for _, a := range se.Attr {
 					if a.Name.Local == URI {

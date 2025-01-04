@@ -19,6 +19,7 @@ package trait
 
 // The error-handler is a platform trait used to inject Error Handler source into the integration runtime.
 //
+// Deprecated: no longer in use.
 // +camel-k:trait=error-handler.
 // +camel-k:internal.
 type ErrorHandlerTrait struct {

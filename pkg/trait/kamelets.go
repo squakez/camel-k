@@ -39,7 +39,6 @@ import (
 	"github.com/apache/camel-k/v2/pkg/util/camel"
 	"github.com/apache/camel-k/v2/pkg/util/digest"
 	"github.com/apache/camel-k/v2/pkg/util/dsl"
-	"github.com/apache/camel-k/v2/pkg/util/source"
 )
 
 const (
@@ -82,11 +81,6 @@ func (t *kameletsTrait) Configure(e *Environment) (bool, *TraitCondition, error)
 		})
 		if err != nil {
 			return false, nil, err
-		}
-		// Check if a Kamelet is configured as default error handler URI
-		defaultErrorHandlerURI := e.Integration.Spec.GetConfigurationProperty(v1.ErrorHandlerAppPropertiesPrefix + ".deadLetterUri")
-		if defaultErrorHandlerURI != "" && strings.HasPrefix(defaultErrorHandlerURI, "kamelet:") {
-			kamelets = append(kamelets, source.ExtractKamelet(defaultErrorHandlerURI))
 		}
 		if len(kamelets) > 0 {
 			sort.Strings(kamelets)

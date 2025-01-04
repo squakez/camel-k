@@ -51,6 +51,7 @@ var (
 	jsonLibraryRegexp       = regexp.MustCompile(`.*JsonLibrary\.Jackson.*`)
 	jsonLanguageRegexp      = regexp.MustCompile(`.*\.json\(\).*`)
 	beanRegexp              = regexp.MustCompile(`.*\.bean\(.*\).*`)
+	errorHandlerRegexp      = regexp.MustCompile(`errorHandler\s*\(\s*deadLetterChannel\s*\(\s*["|']([a-zA-Z0-9-]+:[^"|']+)["|']\s*\).*`)
 	circuitBreakerRegexp    = regexp.MustCompile(`.*\.circuitBreaker\(\).*`)
 	restConfigurationRegexp = regexp.MustCompile(`.*restConfiguration\(\).*`)
 	restRegexp              = regexp.MustCompile(`.*rest\s*\([^)]*\).*`)
@@ -346,6 +347,18 @@ func (i *baseInspector) discoverDependencies(source v1.SourceSpec, meta *Metadat
 		if len(match) > 1 {
 			if dependency, ok := i.catalog.GetJavaTypeDependency(match[1]); ok {
 				meta.AddDependency(dependency)
+			}
+		}
+	}
+
+	for _, match := range errorHandlerRegexp.FindAllStringSubmatch(source.Content, -1) {
+		if len(match) > 1 {
+			_, scheme := i.catalog.DecodeComponent(match[1])
+			if dfDep := i.catalog.GetArtifactByScheme(scheme.ID); dfDep != nil {
+				meta.AddDependency(dfDep.GetDependencyID())
+			}
+			if scheme.ID == "kamelet" {
+				AddKamelet(meta, match[1])
 			}
 		}
 	}

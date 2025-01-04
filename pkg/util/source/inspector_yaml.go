@@ -170,6 +170,16 @@ func (i YAMLInspector) parseStep(key string, content interface{}, meta *Metadata
 						return err
 					}
 				}
+			case "deadLetterUri":
+				if s, ok := v.(string); ok {
+					_, scheme := i.catalog.DecodeComponent(s)
+					if dfDep := i.catalog.GetArtifactByScheme(scheme.ID); dfDep != nil {
+						meta.AddDependency(dfDep.GetDependencyID())
+					}
+					if scheme.ID == "kamelet" {
+						AddKamelet(meta, s)
+					}
+				}
 			default:
 				// Always follow children because from/to uris can be nested
 				if ks, ok := k.(string); ok {

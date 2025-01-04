@@ -204,6 +204,18 @@ func CreateIntegrationFor(ctx context.Context, c client.Client, binding *v1.Pipe
 			"from": fromWrapper,
 		},
 	}
+
+	if errorHandler != nil {
+		errHandlWrapper := translateCamelErrorHandler(errorHandler)
+		flowRoute = map[string]interface{}{
+			"route": map[string]interface{}{
+				"id":           "binding",
+				"from":         fromWrapper,
+				"errorHandler": errHandlWrapper,
+			},
+		}
+	}
+
 	encodedRoute, err := json.Marshal(flowRoute)
 	if err != nil {
 		return nil, err
