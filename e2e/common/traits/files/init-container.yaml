@@ -1,0 +1,10 @@
+- route:
+    from:
+      # Read a file that should have been initialized
+      # by the initContainer
+      uri: file:/tmp/test
+      parameters:
+        fileName: my-file
+      steps:
+        - log:
+            message: "${body}"
