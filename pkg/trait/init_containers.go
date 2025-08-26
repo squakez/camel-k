@@ -28,6 +28,7 @@ import (
 	serving "knative.dev/serving/pkg/apis/serving/v1"
 
 	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
+	"github.com/apache/camel-k/v2/pkg/util/defaults"
 	"k8s.io/utils/ptr"
 )
 
@@ -44,7 +45,7 @@ type containerTask struct {
 }
 
 type initContainersTrait struct {
-	BasePlatformTrait
+	BaseTrait
 	traitv1.InitContainersTrait `property:",squash"`
 
 	tasks []containerTask
@@ -52,7 +53,7 @@ type initContainersTrait struct {
 
 func newInitContainersTrait() Trait {
 	return &initContainersTrait{
-		BasePlatformTrait: NewBasePlatformTrait(initContainerTraitID, initContainerTraitOrder),
+		BaseTrait: NewBaseTrait(initContainerTraitID, initContainerTraitOrder),
 	}
 }
 
@@ -61,7 +62,36 @@ func (t *initContainersTrait) Configure(e *Environment) (bool, *TraitCondition, 
 		return false, nil, nil
 	}
 
-	return t.parseTasks()
+	if ok, condition, err := t.parseTasks(); err != nil {
+		return ok, condition, err
+	}
+
+	// Set the agent init container if any agent exists
+	trait := e.Catalog.GetTrait(jvmTraitID)
+	if trait != nil {
+		jvm, ok := trait.(*jvmTrait)
+		if ok && jvm.hasJavaAgents() {
+			jvmAgents, err := jvm.parseJvmAgents()
+			if err != nil {
+				return false, nil, err
+			}
+			curlDownloadAgents := ""
+			for _, agent := range jvmAgents {
+				if curlDownloadAgents != "" {
+					curlDownloadAgents += " && "
+				}
+				curlDownloadAgents += fmt.Sprintf("curl -o %s/%s.jar %s", defaultAgentDir, agent.name, agent.url)
+			}
+			agentDownloadTask := containerTask{
+				name:    defaultAgentInitContainerName,
+				image:   defaults.BaseImage(),
+				command: fmt.Sprintf("/bin/bash -c \"%s\"", curlDownloadAgents),
+			}
+			t.tasks = append(t.tasks, agentDownloadTask)
+		}
+	}
+
+	return len(t.tasks) > 0, nil, nil
 }
 
 func (t *initContainersTrait) Apply(e *Environment) error {

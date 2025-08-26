@@ -48,8 +48,9 @@ func TestHealthTrait(t *testing.T) {
 			name := RandomizedSuffixName("java")
 			g.Expect(KamelRun(t, ctx, ns, "files/Java.java",
 				"-t", "health.enabled=true",
-				"-t", "jolokia.enabled=true", "-t", "jolokia.use-ssl-client-authentication=false",
-				"-t", "jolokia.protocol=http",
+				"-t", "jvm.agents=jolokia;https://repo1.maven.org/maven2/org/jolokia/jolokia-agent-jvm/2.3.0/jolokia-agent-jvm-2.3.0-javaagent.jar;host=*",
+				"-t", "container.port=8778",
+				"-t", "container.port-name=jolokia",
 				"--name", name).Execute()).To(Succeed())
 
 			g.Eventually(IntegrationPodPhase(t, ctx, ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
@@ -145,8 +146,9 @@ func TestHealthTrait(t *testing.T) {
 			name := RandomizedSuffixName("java")
 			g.Expect(KamelRun(t, ctx, ns, "files/Java.java",
 				"-t", "health.enabled=true",
-				"-t", "jolokia.enabled=true", "-t", "jolokia.use-ssl-client-authentication=false",
-				"-t", "jolokia.protocol=http",
+				"-t", "jvm.agents=jolokia;https://repo1.maven.org/maven2/org/jolokia/jolokia-agent-jvm/2.3.0/jolokia-agent-jvm-2.3.0-javaagent.jar;host=*",
+				"-t", "container.port=8778",
+				"-t", "container.port-name=jolokia",
 				"--name", name).Execute()).To(Succeed())
 
 			g.Eventually(IntegrationPodPhase(t, ctx, ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
@@ -240,10 +242,10 @@ func TestHealthTrait(t *testing.T) {
 
 			g.Expect(KamelBind(t, ctx, ns, source, sink, "-p",
 				"source.message=Magicstring!", "-p", "sink.loggerName=binding",
-				"--trait", "health.enabled=true",
-				"--trait", "jolokia.enabled=true",
-				"--trait", "jolokia.use-ssl-client-authentication=false",
-				"--trait", "jolokia.protocol=http",
+				"-t", "health.enabled=true",
+				"-t", "jvm.agents=jolokia;https://repo1.maven.org/maven2/org/jolokia/jolokia-agent-jvm/2.3.0/jolokia-agent-jvm-2.3.0-javaagent.jar;host=*",
+				"-t", "container.port=8778",
+				"-t", "container.port-name=jolokia",
 				"--name", name).Execute()).To(Succeed())
 
 			g.Eventually(IntegrationPodPhase(t, ctx, ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
