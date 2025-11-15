@@ -44,6 +44,7 @@ rules:
   - camel.apache.org
   resources:
   - builds
+  - integrations
   verbs:
   - delete
 - apiGroups:
@@ -66,22 +67,68 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - pods
-  - services
-  - endpoints
-  - persistentvolumeclaims
+  # - pods
+  # - services
+  # - endpoints
+  # - persistentvolumeclaims
   - configmaps
-  - secrets
+  # - secrets
+  # - serviceaccounts
+  verbs:
+  - create
+  - delete
+  # - deletecollection
+  - get
+  - list
+  - patch
+  # - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - serviceaccounts
   verbs:
   - create
   - delete
-  - deletecollection
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  # - deletecollection
   - get
   - list
   - patch
-  - update
+  # - update
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  # - create
+  # - delete
+  # - deletecollection
+  - get
+  - list
+  # - patch
+  # - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - create
+  - patch
+  - list
+  - watch
+  - delete
 - apiGroups:
   - ""
   resources:
@@ -96,32 +143,23 @@ rules:
   verbs:
   - get
 - apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+- apiGroups:
   - policy
   resources:
   - poddisruptionbudgets
   verbs:
   - create
   - delete
-  - get
-  - update
+  # - get
+  # - update
   - list
   - patch
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
-  - roles
-  - rolebindings
-  - clusterrolebindings
-  verbs:
-  - create
-  - delete
-  - deletecollection
-  - get
-  - list
-  - patch
-  - update
-  - watch
+  # - watch
 - apiGroups:
   - apps
   resources:
@@ -129,11 +167,11 @@ rules:
   verbs:
   - create
   - delete
-  - deletecollection
+  # - deletecollection
   - get
   - list
   - patch
-  - update
+  # - update
   - watch
 - apiGroups:
   - batch
@@ -142,11 +180,11 @@ rules:
   verbs:
   - create
   - delete
-  - deletecollection
+  # - deletecollection
   - get
   - list
   - patch
-  - update
+  # - update
   - watch
 - apiGroups:
   - batch
@@ -163,12 +201,12 @@ rules:
   verbs:
   - create
   - delete
-  - deletecollection
+  # - deletecollection
   - get
   - list
   - patch
-  - update
-  - watch
+  # - update
+  # - watch
 - apiGroups:
   - storage.k8s.io
   resources:
@@ -176,6 +214,7 @@ rules:
   verbs:
   - get
   - list
+# Roles and RoleBindings
 - apiGroups:
   - ""
   resources:
@@ -183,3 +222,18 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  - clusterrolebindings
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
