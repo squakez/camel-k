@@ -172,14 +172,15 @@ rules:
   verbs:
   - get
   - list
+# Namespaces
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
 # Roles and RoleBindings
-# - apiGroups:
-#   - ""
-#   resources:
-#   - namespaces
-#   verbs:
-#   - get
-#   - list
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
