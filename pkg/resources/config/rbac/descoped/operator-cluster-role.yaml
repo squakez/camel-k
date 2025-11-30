@@ -140,14 +140,6 @@ rules:
   - list
   - patch
   - watch
-# - apiGroups:
-#   - batch
-#   resources:
-#   - jobs
-#   verbs:
-#   - get
-#   - list
-#   - watch
 # Service trait
 - apiGroups:
   - ""
@@ -196,13 +188,13 @@ rules:
   - list
   - patch
 # Roles and RoleBindings
-- apiGroups:
-  - ""
-  resources:
-  - namespaces
-  verbs:
-  - get
-  - list
+# - apiGroups:
+#   - ""
+#   resources:
+#   - namespaces
+#   verbs:
+#   - get
+#   - list
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
@@ -211,13 +203,8 @@ rules:
   - clusterrolebindings
   verbs:
   - create
-  # - delete
-  # - deletecollection
   - get
   - list
-  # - patch
-  # - update
-  # - watch
 # Required to check if a ServiceAccount can access other namespaces resources
 - apiGroups:
   - authorization.k8s.io

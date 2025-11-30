@@ -155,14 +155,6 @@ rules:
   - list
   - patch
   - watch
-# - apiGroups:
-#   - batch
-#   resources:
-#   - jobs
-#   verbs:
-#   - get
-#   - list
-#   - watch
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -188,18 +180,13 @@ rules:
 #   verbs:
 #   - get
 #   - list
-# - apiGroups:
-#   - rbac.authorization.k8s.io
-#   resources:
-#   - roles
-#   - rolebindings
-#   - clusterrolebindings
-#   verbs:
-#   - create
-#   - delete
-#   - deletecollection
-#   - get
-#   - list
-#   - patch
-#   - update
-#   - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  - rolebindings
+  - clusterrolebindings
+  verbs:
+  - create
+  - get
+  - list
