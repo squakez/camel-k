@@ -90,6 +90,7 @@ func propagateIcon(ctx context.Context, c client.Client, l log.Logger, pipe *v1.
 	icon, err := findIcon(ctx, c, pipe)
 	if err != nil {
 		l.Errorf(err, "some error happened while finding icon annotation for Pipe %q", pipe.Name)
+
 		return
 	}
 	if icon == "" {

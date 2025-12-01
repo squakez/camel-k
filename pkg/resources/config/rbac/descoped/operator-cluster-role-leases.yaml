@@ -32,6 +32,6 @@ rules:
   # - deletecollection
   - get
   - list
-  # - patch
+  - patch
   - update
   # - watch

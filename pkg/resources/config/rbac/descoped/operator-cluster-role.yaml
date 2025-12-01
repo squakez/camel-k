@@ -78,15 +78,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - serviceaccounts
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-- apiGroups:
-  - ""
-  resources:
   - secrets
   verbs:
   - get
@@ -204,6 +195,17 @@ rules:
   - clusterrolebindings
   verbs:
   - create
+  - get
+  - list
+  - patch
+# Service Accounts (dynamic SA creation)
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
   - get
   - list
 # Required to check if a ServiceAccount can access other namespaces resources
