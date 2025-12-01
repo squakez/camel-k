@@ -33,5 +33,5 @@ rules:
   - get
   - list
   # - patch
-  # - update
+  - update
   # - watch

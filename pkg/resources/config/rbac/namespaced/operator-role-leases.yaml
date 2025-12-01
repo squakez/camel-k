@@ -28,10 +28,10 @@ rules:
   - leases
   verbs:
   - create
-  # - delete
+  - delete
   # - deletecollection
   - get
   - list
   # - patch
-  # - update
+  - update
   # - watch
