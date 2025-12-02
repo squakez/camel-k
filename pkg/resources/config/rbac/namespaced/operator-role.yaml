@@ -78,17 +78,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - services
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - secrets
   verbs:
   - get
@@ -119,21 +108,6 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  verbs:
-  - create
-- apiGroups:
-  - policy
-  resources:
-  - poddisruptionbudgets
-  verbs:
-  - create
-  - delete
-  - list
-  - patch
-- apiGroups:
   - apps
   resources:
   - deployments
@@ -155,6 +129,29 @@ rules:
   - list
   - patch
   - watch
+# Required by Service trait
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - watch
+# Required by PDB trait
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - list
+  - patch
+# Required by ingress trait
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -165,6 +162,13 @@ rules:
   - get
   - list
   - patch
+# Required by mount trait
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
 - apiGroups:
   - storage.k8s.io
   resources:
@@ -172,14 +176,6 @@ rules:
   verbs:
   - get
   - list
-# Namespaces
-# - apiGroups:
-#   - ""
-#   resources:
-#   - namespaces
-#   verbs:
-#   - get
-#   - list
 # Roles and RoleBindings
 - apiGroups:
   - rbac.authorization.k8s.io

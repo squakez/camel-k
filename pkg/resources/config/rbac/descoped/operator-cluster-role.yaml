@@ -131,7 +131,7 @@ rules:
   - list
   - patch
   - watch
-# Service trait
+# Required by service trait
 - apiGroups:
   - ""
   resources:
@@ -142,8 +142,7 @@ rules:
   - get
   - list
   - patch
-  - watch
-# Mount trait
+# Required by mount trait
 - apiGroups:
   - storage.k8s.io
   resources:
@@ -157,7 +156,7 @@ rules:
   - persistentvolumeclaims
   verbs:
   - create
-# PDB trait
+# Required by PDB trait
 - apiGroups:
   - policy
   resources:
@@ -167,7 +166,7 @@ rules:
   - delete
   - list
   - patch
-# Ingress trait
+# Required by ingress trait
 - apiGroups:
   - networking.k8s.io
   resources:
@@ -178,14 +177,6 @@ rules:
   - get
   - list
   - patch
-# Namespaces
-# - apiGroups:
-#   - ""
-#   resources:
-#   - namespaces
-#   verbs:
-#   - get
-#   - list
 # Roles and RoleBindings
 - apiGroups:
   - rbac.authorization.k8s.io
