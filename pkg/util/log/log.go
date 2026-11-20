@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
 	"github.com/go-logr/logr"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -154,6 +155,16 @@ func (l Logger) ForKamelet(target *v1.Kamelet) Logger {
 
 // ForPipe --.
 func (l Logger) ForPipe(target *v1.Pipe) Logger {
+	return l.WithValues(
+		"api-version", target.APIVersion,
+		"kind", target.Kind,
+		"ns", target.Namespace,
+		"name", target.Name,
+	)
+}
+
+// ForIntegrationBuild --.
+func (l Logger) ForIntegrationBuild(target *v1alpha1.IntegrationBuild) Logger {
 	return l.WithValues(
 		"api-version", target.APIVersion,
 		"kind", target.Kind,

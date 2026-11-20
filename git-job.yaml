@@ -1,0 +1,169 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: camel-git-profile
+data:
+  jib-profile.xml: |
+          <profile>
+            <id>jib</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.google.cloud.tools</groupId>
+                        <artifactId>jib-maven-plugin</artifactId>
+                        <version>3.5.1</version>
+                        <configuration>
+                            <extraDirectories>
+                                <paths>
+                                    <path>
+                                        <from>${project.build.directory}</from>
+                                        <into>/deployments</into>
+                                        <includes>
+                                            <include>${project.build.finalName}.jar</include>
+                                        </includes>
+                                    </path>
+                                </paths>
+                                <permissions>
+                                    <permission>
+                                        <file>/deployments/${project.build.finalName}.jar</file>
+                                        <mode>644</mode>
+                                    </permission>
+                                </permissions>
+                            </extraDirectories>
+                            <container>
+                               <entrypoint>
+                                    <arg>java</arg>
+                                    <arg>-jar</arg>
+                                    <arg>/deployments/${project.build.finalName}.jar</arg>
+                                </entrypoint>
+                            </container>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+          </profile>
+  jib-profiler.sh: |
+    #!/bin/sh
+    if [ "$#" -ne 2 ]; then
+        echo "Usage: $0 <pom.xml> <jib-profile.xml>" >&2
+        exit 1
+    fi
+
+    POM="$1"
+    PROFILE="$2"
+    TMP="${POM}.tmp"
+
+    if [ ! -f "$POM" ]; then
+        echo "Error: POM file not found: $POM" >&2
+        exit 1
+    fi
+
+    if [ ! -f "$PROFILE" ]; then
+        echo "Error: Jib profile not found: $PROFILE" >&2
+        exit 1
+    fi
+
+    if grep -q '</profiles>' "$POM"; then
+        awk -v profile_file="$PROFILE" '
+            /<\/profiles>/ {
+                while ((getline line < profile_file) > 0)
+                    print "    " line
+                close(profile_file)
+            }
+            { print }
+        ' "$POM" > "$TMP"
+    elif grep -q '</project>' "$POM"; then
+        awk -v profile_file="$PROFILE" '
+            /<\/project>/ {
+                print "  <profiles>"
+                while ((getline line < profile_file) > 0)
+                    print "    " line
+                close(profile_file)
+                print "  </profiles>"
+            }
+            { print }
+        ' "$POM" > "$TMP"
+    else
+        echo "Error: no </project> element found in $POM" >&2
+        rm -f "$TMP"
+        exit 1
+    fi
+
+    mv "$TMP" "$POM"
+
+    echo "Updated $POM"
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: camel-git-job
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      securityContext:
+        runAsUser: 1000
+      restartPolicy: Never
+
+      initContainers:
+        - name: git-clone
+          image: alpine/git
+          workingDir: /workspace
+          env:
+            - name: HOME
+              value: /workspace
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - |
+              set -e
+              echo "Cloning repository..."
+              git clone --depth=1 https://github.com/squakez/sample.git /workspace
+              echo "Injecting Jib profile..."
+              sh /profile/jib-profiler.sh /workspace/pom.xml /profile/jib-profile.xml
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+            - name: profile
+              mountPath: /profile
+
+      containers:
+        - name: maven-build
+          image: maven:3.9.11-eclipse-temurin-21
+          env:
+            - name: HOME
+              value: /workspace
+            - name: MAVEN_CONFIG
+              value: /workspace/.m2
+          command:
+            - mvn
+          args:
+            - package
+            - jib:build
+            - -Pjib
+            - -f
+            - /workspace/pom.xml
+            - -DskipTests
+            - --no-transfer-progress
+            - -Djib.to.image=10.99.124.228/squakez/camel-app:latest
+            - -Djib.from.image=eclipse-temurin:21-jdk
+            - -Djib.container.user=1000
+            - -Djib.disableUpdateChecks=true
+            - -Djib.allowInsecureRegistries=true
+            - -Djib.outputPaths.digest=/dev/termination-log
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+
+      volumes:
+        - name: workspace
+          emptyDir: {}
+
+        - name: profile
+          configMap:
+            name: camel-git-profile

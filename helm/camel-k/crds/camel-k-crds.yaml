@@ -2747,6 +2747,131 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.22.0
   labels:
     app: camel-k
+  name: integrationbuilds.camel.apache.org
+spec:
+  group: camel.apache.org
+  names:
+    categories:
+    - kamel
+    - camel
+    kind: IntegrationBuild
+    listKind: IntegrationBuildList
+    plural: integrationbuilds
+    shortNames:
+    - ib
+    singular: integrationbuild
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          IntegrationBuild is the Schema for the IntegrationBuild API. This resource takes care of building your Camel application and transforming into a
+          container pushed to a registry. The container image can be used to run the application on the cluster.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IntegrationBuildSpec defines the desired state of an IntegrationBuild.
+            properties:
+              buildTask:
+                description: The task building the Maven project and pushing the container
+                  image (Maven JIB).
+                properties:
+                  allowInsecureRegistries:
+                    description: Whether pushing to insecure (plain HTTP or untrusted
+                      TLS) registries is allowed.
+                    type: boolean
+                  imageBaseSource:
+                    description: The base image the application image is built from.
+                    type: string
+                  imageContainerUser:
+                    description: The user ID the application container runs as.
+                    format: int32
+                    type: integer
+                  imageDestination:
+                    description: The container image repository the application image
+                      is pushed to.
+                    type: string
+                  imageDestinationVersion:
+                    description: The tag of the application image.
+                    type: string
+                  imageTask:
+                    description: The container image running the task (defaults to
+                      a Maven image).
+                    type: string
+                type: object
+              exportTask:
+                description: The task exporting the sources into a Maven project (Camel
+                  JBang).
+                properties:
+                  gav:
+                    description: The Maven GAV (groupId:artifactId:version) of the
+                      exported project.
+                    type: string
+                  imageTask:
+                    description: The container image running the task (defaults to
+                      the Camel JBang image).
+                    type: string
+                  runtimeProvider:
+                    description: The Camel runtime to export to (i.e. quarkus).
+                    type: string
+                  runtimeVersion:
+                    description: The Camel runtime version.
+                    type: string
+                type: object
+              securityContextRunAsUser:
+                description: The user ID the build Pod runs as (Pod securityContext.runAsUser).
+                format: int32
+                type: integer
+              sources:
+                description: The names of the ConfigMaps containing the Camel sources,
+                  mounted under /input in the export task.
+                items:
+                  type: string
+                type: array
+            type: object
+          status:
+            description: IntegrationBuildStatus defines the observed state of an IntegrationBuild.
+            properties:
+              imageSha:
+                description: The digest (sha) of the container image produced.
+                type: string
+              imageVersion:
+                description: The version (tag) of the container image produced.
+                type: string
+              phase:
+                description: The current phase of the build.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.22.0
+  labels:
+    app: camel-k
   name: integrationkits.camel.apache.org
 spec:
   group: camel.apache.org

@@ -76,7 +76,8 @@ func NewFakeClient(initObjs ...runtime.Object) (client.Client, error) {
 		Build()
 
 	camelClientset := fakecamelclientset.NewClientset(filterObjects(scheme, initObjs, func(gvk schema.GroupVersionKind) bool {
-		return strings.Contains(gvk.Group, "camel")
+		// The generated camel clientset only knows about the v1 API version
+		return strings.Contains(gvk.Group, "camel") && gvk.Version == v1.SchemeGroupVersion.Version
 	})...)
 	clientset := fakeclientset.NewSimpleClientset(filterObjects(scheme, initObjs, func(gvk schema.GroupVersionKind) bool {
 		return !strings.Contains(gvk.Group, "camel") && !strings.Contains(gvk.Group, "knative") &&

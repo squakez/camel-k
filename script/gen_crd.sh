@@ -65,6 +65,7 @@ deploy_crd() {
 deploy_crd build builds
 deploy_crd camel-catalog camelcatalogs
 deploy_crd integration integrations
+deploy_crd integrationbuild integrationbuilds
 deploy_crd integration-kit integrationkits
 deploy_crd integration-platform integrationplatforms
 deploy_crd integration-profile integrationprofiles

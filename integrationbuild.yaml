@@ -1,0 +1,14 @@
+apiVersion: camel.apache.org/v1alpha1
+kind: IntegrationBuild
+metadata:
+  name: ibtest
+spec:
+  sources:
+    - test-source-000
+  exportTask:
+    runtimeProvider: quarkus
+    gav: org.acme:my-app:1.0.0
+  buildTask:
+    imageBaseSource: eclipse-temurin:21-jdk
+    imageDestination: 10.99.124.228/squakez/camel-app
+    imageDestinationVersion: 1.0.0
