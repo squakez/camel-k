@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: camel-git-profile
+data:
+  jib-profile.xml: |
+          <profile>
+            <id>jib</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.google.cloud.tools</groupId>
+                        <artifactId>jib-maven-plugin</artifactId>
+                        <version>3.5.1</version>
+                        <configuration>
+                            <extraDirectories>
+                                <paths>
+                                    <path>
+                                        <from>${project.build.directory}</from>
+                                        <into>/deployments</into>
+                                        <includes>
+                                            <include>${project.build.finalName}.jar</include>
+                                        </includes>
+                                    </path>
+                                </paths>
+                                <permissions>
+                                    <permission>
+                                        <file>/deployments/${project.build.finalName}.jar</file>
+                                        <mode>644</mode>
+                                    </permission>
+                                </permissions>
+                            </extraDirectories>
+                            <container>
+                               <entrypoint>
+                                    <arg>java</arg>
+                                    <arg>-jar</arg>
+                                    <arg>/deployments/${project.build.finalName}.jar</arg>
+                                </entrypoint>
+                            </container>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+          </profile>
+  jib-profiler.sh: |
+    #!/bin/sh
+    if [ "$#" -ne 2 ]; then
+        echo "Usage: $0 <pom.xml> <jib-profile.xml>" >&2
+        exit 1
+    fi
+
+    POM="$1"
+    PROFILE="$2"
+    TMP="${POM}.tmp"
+
+    if [ ! -f "$POM" ]; then
+        echo "Error: POM file not found: $POM" >&2
+        exit 1
+    fi
+
+    if [ ! -f "$PROFILE" ]; then
+        echo "Error: Jib profile not found: $PROFILE" >&2
+        exit 1
+    fi
+
+    if grep -q '</profiles>' "$POM"; then
+        awk -v profile_file="$PROFILE" '
+            /<\/profiles>/ {
+                while ((getline line < profile_file) > 0)
+                    print "    " line
+                close(profile_file)
+            }
+            { print }
+        ' "$POM" > "$TMP"
+    elif grep -q '</project>' "$POM"; then
+        awk -v profile_file="$PROFILE" '
+            /<\/project>/ {
+                print "  <profiles>"
+                while ((getline line < profile_file) > 0)
+                    print "    " line
+                close(profile_file)
+                print "  </profiles>"
+            }
+            { print }
+        ' "$POM" > "$TMP"
+    else
+        echo "Error: no </project> element found in $POM" >&2
+        rm -f "$TMP"
+        exit 1
+    fi
+
+    mv "$TMP" "$POM"
+
+    echo "Updated $POM"

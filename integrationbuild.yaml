@@ -1,0 +1,21 @@
+apiVersion: camel.apache.org/v1alpha1
+kind: IntegrationBuild
+metadata:
+  name: ibtest
+spec:
+
+  exportTask:
+    sources:
+      - my-route
+    runtimeProvider: quarkus
+    gav: org.acme:my-app:1.0.0
+
+  # cloneTask:
+  #   git:
+  #     url: https://github.com/squakez/sample.git
+
+  buildTask:
+    imageBaseSource: eclipse-temurin:21-jdk
+    imageDestination: 10.100.203.12/squakez/camel-app
+    imageDestinationVersion: 1.0.0
+    #allowInsecureRegistries: true

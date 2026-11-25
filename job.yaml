@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: camel-project
+data:
+  route.yaml: |
+    - route:
+        from:
+          uri: timer:yaml
+          parameters:
+            period: "1000"
+          steps:
+            - setBody:
+                simple: Hello Camel from ${routeId}
+            - log: ${body}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: camel-export-job
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      securityContext:
+        runAsUser: 1000
+      restartPolicy: Never
+
+      initContainers:
+        - name: camel-export
+          image: apache/camel-jbang:4.22.0
+          workingDir: /workspace
+          env:
+            - name: HOME
+              value: /workspace
+
+          command:
+            - /bin/sh
+            - -c
+          # args:
+          #   - |
+          #     camel export /input/* \
+          #       --dir /workspace \
+          #       --runtime quarkus \
+          #       --gav=org.apache.camel.integrations:my-it:1.0.0
+
+          args:
+            - camel export /input --dir /workspace --runtime quarkus --gav=org.apache.camel.integrations:my-it:1.0.0
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+            - name: input
+              mountPath: /input
+
+      containers:
+        - name: maven-build
+          image: maven:3.9.11-eclipse-temurin-21
+          env:
+            - name: HOME
+              value: /workspace
+            - name: MAVEN_CONFIG
+              value: /workspace/.m2
+          command:
+            - mvn
+          args:
+            - package
+            - jib:build
+            - -Pjib
+            - -f
+            - /workspace/pom.xml
+            - -DskipTests
+            - --no-transfer-progress
+            - -Djib.to.image=10.97.36.77/squakez/camel-app:latest
+            - -Djib.from.image=eclipse-temurin:21-jdk
+            - -Djib.container.user=1000
+            - -Djib.disableUpdateChecks=true
+            - -Djib.allowInsecureRegistries=true
+            - -Djib.outputPaths.digest=/dev/termination-log
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+
+      volumes:
+        - name: workspace
+          emptyDir: {}
+
+        - name: input
+          configMap:
+            name: camel-project

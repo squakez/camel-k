@@ -1,0 +1,195 @@
+# ---------------------------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ---------------------------------------------------------------------------
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.22.0
+  name: integrationbuilds.camel.apache.org
+spec:
+  group: camel.apache.org
+  names:
+    categories:
+    - kamel
+    - camel
+    kind: IntegrationBuild
+    listKind: IntegrationBuildList
+    plural: integrationbuilds
+    shortNames:
+    - ib
+    singular: integrationbuild
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The build phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: The container build SHA
+      jsonPath: .status.imageSha
+      name: Container SHA
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          IntegrationBuild is the Schema for the IntegrationBuild API. This resource takes care of building your Camel application and transforming into a
+          container pushed to a registry. The container image can be used to run the application on the cluster.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: IntegrationBuildSpec defines the desired state of an IntegrationBuild.
+            properties:
+              buildTask:
+                description: The task building the Maven project and pushing the container
+                  image (Maven JIB).
+                properties:
+                  allowInsecureRegistries:
+                    description: Whether pushing to insecure (plain HTTP or untrusted
+                      TLS) registries is allowed.
+                    type: boolean
+                  imageBaseSource:
+                    description: The base image the application image is built from.
+                    minLength: 1
+                    type: string
+                  imageContainerUser:
+                    description: The user ID the application container runs as.
+                    format: int32
+                    type: integer
+                  imageDestination:
+                    description: The container image repository the application image
+                      is pushed to.
+                    minLength: 1
+                    type: string
+                  imageDestinationVersion:
+                    description: The tag of the application image.
+                    minLength: 1
+                    type: string
+                  imageTask:
+                    description: The container image running the task (defaults to
+                      a Maven image).
+                    type: string
+                required:
+                - imageBaseSource
+                - imageDestination
+                - imageDestinationVersion
+                type: object
+              cloneTask:
+                description: The task cloning a Git project.
+                properties:
+                  git:
+                    description: the configuration of the project to build on Git
+                    properties:
+                      branch:
+                        description: the git branch to check out
+                        type: string
+                      commit:
+                        description: the git commit (full SHA) to check out
+                        type: string
+                      path:
+                        description: the path you want to use for your project. If
+                          provided, it must be an existing directory on the Git repository.
+                        type: string
+                      secret:
+                        description: the Kubernetes secret where token is stored
+                        type: string
+                      tag:
+                        description: the git tag to check out
+                        type: string
+                      url:
+                        description: the URL of the project
+                        minLength: 1
+                        type: string
+                      username:
+                        description: |-
+                          the username used to authenticate against the Git server, together with the token stored in `secret` (default `camel-k`).
+                          Some Git servers validate it, for example Bitbucket Cloud access tokens require `x-token-auth`.
+                        type: string
+                    type: object
+                required:
+                - git
+                type: object
+              exportTask:
+                description: The task exporting the sources into a Maven project (Camel
+                  JBang).
+                properties:
+                  gav:
+                    description: The Maven GAV (groupId:artifactId:version) of the
+                      exported project.
+                    type: string
+                  imageTask:
+                    description: The container image running the task (defaults to
+                      the Camel JBang image).
+                    type: string
+                  runtimeProvider:
+                    description: The Camel runtime to export to (i.e. quarkus).
+                    type: string
+                  runtimeVersion:
+                    description: The Camel runtime version.
+                    type: string
+                  sources:
+                    description: The names of the ConfigMaps containing the Camel
+                      sources.
+                    items:
+                      minLength: 1
+                      type: string
+                    minItems: 1
+                    type: array
+                required:
+                - sources
+                type: object
+              securityContextRunAsUser:
+                description: The user ID the build Pod runs as (Pod securityContext.runAsUser).
+                format: int32
+                type: integer
+            type: object
+          status:
+            description: IntegrationBuildStatus defines the observed state of an IntegrationBuild.
+            properties:
+              imageSha:
+                description: The digest (sha) of the container image produced.
+                type: string
+              imageVersion:
+                description: The version (tag) of the container image produced.
+                type: string
+              phase:
+                description: The current phase of the build.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
